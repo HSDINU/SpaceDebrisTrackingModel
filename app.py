@@ -73,7 +73,40 @@ def load_pipeline_data():
     return simul, kritik_df, model_rpt
 
 
+@st.cache_data(ttl=300)
+def load_all_debris_for_viz() -> pd.DataFrame:
+    """risk_tahmin_tum.csv'den 3D görselleştirme için minimal sütunları yükler.
+    14.871 benzersiz debris → stratejik örnekleme → 400 görsel nesne.
+    """
+    tum_path = ROOT / "data" / "output" / "risk_tahmin_tum.csv"
+    if not tum_path.exists():
+        return pd.DataFrame()
+
+    # Sadece görselleştirme için gereken sütunları oku (hız için bellek tasarrufu)
+    cols = [
+        "cop_parca", "cop_kaynak", "cop_sma_km",
+        "hiz_t0_km_s", "malzeme", "yanma_orani",
+        "yere_dusme_riski", "cop_inclination_deg",
+        "cop_eccentricity", "bilesik_risk_skoru", "risk_sinifi",
+    ]
+    df = pd.read_csv(tum_path, usecols=cols)
+
+    # Benzersiz debris; en yüksek risk skoruna sahip satırı tut
+    df = (
+        df.sort_values("bilesik_risk_skoru", ascending=False)
+        .drop_duplicates(subset=["cop_parca"])
+    ).copy()
+
+    # Orbit radius hesapla
+    df["orbit_r"] = (
+        df["cop_sma_km"]
+        .apply(lambda s: max(110.0, min(380.0, 108.0 + (float(s) - 6371.0) * 0.025)))
+    )
+    return df
+
+
 simul, kritik_df, model_rpt = load_pipeline_data()
+all_debris_df = load_all_debris_for_viz()
 DATA_READY = simul is not None
 
 
@@ -241,35 +274,59 @@ if kritik_df is not None and not kritik_df.empty:
         })
 
 
-# ── 3D Debris nesneleri (kritik.csv'den top-150 benzersiz cisim) ─
+# ── 3D Debris nesneleri: risk_tahmin_tum.csv → stratejik örnekleme ──
+# Sorun: kritik.csv'nin %75'i orbit_r ~120 (LEO dar bandında) → görsel yığılma
+# Çözüm: tum.csv'den 14k benzersiz debris → 4 yörünge bandında 400 nesne
 debris_3d: list[dict] = []
 
-if kritik_df is not None and not kritik_df.empty:
+_deb_src = all_debris_df if not all_debris_df.empty else (
+    kritik_df if kritik_df is not None and not kritik_df.empty else None
+)
+
+if _deb_src is not None:
+    # Yörünge bandı → hedef sayı  (toplam ≈ 400)
+    BANDS = [
+        (110.0, 125.0, 150),   # LEO alçak   (<1 000 km irt.) — en kalabalık gerçek bant
+        (125.0, 145.0,  80),   # LEO yüksek  (1 000–3 400 km)
+        (145.0, 200.0,  80),   # MEO / geçiş (3 400–9 500 km)
+        (200.0, 380.0,  90),   # Yüksek / GEO sıkıştırılmış
+    ]
+
+    src = _deb_src.copy()
+    if "orbit_r" not in src.columns:
+        src["orbit_r"] = src["cop_sma_km"].apply(
+            lambda s: max(110.0, min(380.0, 108.0 + (float(s) - 6371.0) * 0.025))
+        )
+    src = src.sort_values("bilesik_risk_skoru", ascending=False)
+
+    parts: list[pd.DataFrame] = []
+    for lo, hi, n in BANDS:
+        band = src[(src["orbit_r"] >= lo) & (src["orbit_r"] < hi)]
+        if len(band) > 0:
+            parts.append(band.head(n))
+
     top_deb = (
-        kritik_df
-        .sort_values("bilesik_risk_skoru", ascending=False)
-        .drop_duplicates(subset=["cop_parca"])
-        .head(150)
+        pd.concat(parts).drop_duplicates(subset=["cop_parca"])
+        if parts else src.head(300)
     )
+
     for _, row in top_deb.iterrows():
-        sma_km   = float(row.get("cop_sma_km", 7060))
-        orbit_r  = sma_to_orbit_radius(sma_km)
+        orbit_r  = float(row.get("orbit_r", 120.0))
         material = str(row.get("malzeme", "Bilinmiyor"))
-        # Material alanı çok uzunsa kısalt
         if len(material) > 60:
             material = material[:57] + "..."
         debris_3d.append({
-            "id":            str(row.get("cop_parca", "DEBRIS")),
-            "source":        str(row.get("cop_kaynak", "")),
-            "orbit":         orbit_r,
-            "velocity":      f"{float(row.get('hiz_t0_km_s', 0)):.1f} km/s",
-            "material":      material,
-            "burn_rate":     str(row.get("yanma_orani", "N/A")),
-            "reentry_risk":  round(float(row.get("yere_dusme_riski", 0)), 2),
-            "risk_score":    round(float(row.get("bilesik_risk_skoru", 0)) * 100, 1),
-            "risk_class":    str(row.get("risk_sinifi", "ORTA")),
-            "inclination":   round(float(row.get("cop_inclination_deg", 0)), 2),
-            "eccentricity":  round(float(row.get("cop_eccentricity", 0)), 5),
+            "id":           str(row.get("cop_parca",           "DEBRIS")),
+            "source":       str(row.get("cop_kaynak",          "")),
+            "orbit":        round(orbit_r, 1),
+            "velocity":     f"{float(row.get('hiz_t0_km_s', 0)):.2f} km/s",
+            "material":     material,
+            "burn_rate":    str(row.get("yanma_orani",         "N/A")),
+            "reentry_risk": round(float(row.get("yere_dusme_riski",    0)), 2),
+            "risk_score":   round(float(row.get("bilesik_risk_skoru",  0)) * 100, 1),
+            "risk_class":   str(row.get("risk_sinifi",         "ORTA")),
+            "inclination":  round(float(row.get("cop_inclination_deg", 0)), 2),
+            "eccentricity": round(float(row.get("cop_eccentricity",    0)), 5),
         })
 
 
@@ -301,7 +358,7 @@ log_messages = [
     f"{pipeline_meta['n_toplam']:,} (uydu × çöp) çifti analiz edildi",
     f"YÜKSEK risk tespiti: {pipeline_meta['n_yuksek']:,} çift",
     f"KRİTİK risk tespiti: {pipeline_meta['n_kritik']:,} çift",
-    f"{len(debris_3d)} benzersiz çöp cismi görselleştirildi",
+    f"{len(debris_3d)} benzersiz çöp cismi görselleştirildi (4 yörünge bandı)",
     "SGP4 propagator aktif — t₀+24h tahmini tamamlandı",
     "TCA (Time of Closest Approach) analizi tamamlandı",
     "Orbital korelasyon matrisi hesaplandı",
@@ -713,7 +770,9 @@ html_template = """
                 realDebrisData.forEach((deb) => {
                     const sprite     = new THREE.Sprite(debrisMat.clone());
                     const baseOrbit  = deb.orbit || 120;
-                    const radius     = Math.max(107, baseOrbit + (Math.random() - 0.5) * 18);
+                    // Orbit bandına göre saçılım: LEO'da dar, yüksek yörüngede geniş
+                    const spreadScale = baseOrbit < 130 ? 14 : baseOrbit < 160 ? 20 : 28;
+                    const radius     = Math.max(107, baseOrbit + (Math.random() - 0.5) * spreadScale);
                     const phi        = Math.random() * Math.PI * 2;
                     const theta      = Math.random() * Math.PI;
                     sprite.position.setFromSphericalCoords(radius, theta, phi);
