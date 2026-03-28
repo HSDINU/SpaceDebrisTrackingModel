@@ -1,0 +1,66 @@
+﻿=================================================================
+🛰️  Risk Tahmin Motoru — Simülasyon Çıktısı
+=================================================================
+Feature sayısı: 22
+Toplam çift   : 156,726
+
+Tahmin yapılıyor...
+
+✅ Tüm çiftler → C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output\risk_tahmin_tum.csv (156,726 satır)
+✅ Kritik+Yüksek → C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output\risk_tahmin_kritik.csv (2,259 çift)
+
+─────────────────────────────────────────────────────────────────
+RİSK DAĞILIMI
+─────────────────────────────────────────────────────────────────
+  KRITIK  (<1,000 km   )       0  (  0.0%)  
+  YUKSEK  (1k-5k km    )   2,259  (  1.4%)  
+  ORTA    (5k-15k km   )  48,075  ( 30.7%)  ████████████
+  DUSUK   (>15k km     ) 106,392  ( 67.9%)  ███████████████████████████
+
+─────────────────────────────────────────────────────────────────
+UYDU BAZLI ÖZET
+─────────────────────────────────────────────────────────────────
+  GOKTURK 1A        KRİTİK=   0  YÜKSEK= 348  En yakın:  2,867.3 km  ← GOKTURK 1A
+  GOKTURK 2         KRİTİK=   0  YÜKSEK=1007  En yakın:  1,462.1 km  ← STARLINK-34016
+  IMECE             KRİTİK=   0  YÜKSEK= 762  En yakın:  2,172.8 km  ← STARLINK-5039
+  TURKSAT 3A        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,515.3 km  ← TURKSAT 5B
+  TURKSAT 4A        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,515.3 km  ← TURKSAT 5B
+  TURKSAT 4B        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,702.1 km  ← YAMAL 601
+  TURKSAT 5A        KRİTİK=   0  YÜKSEK=  22  En yakın:  1,699.5 km  ← ARABSAT-5A
+  TURKSAT 5B        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,515.3 km  ← TURKSAT 5B
+  TURKSAT 6A        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,515.3 km  ← TURKSAT 5B
+
+─────────────────────────────────────────────────────────────────
+EN RİSKLİ 20 ÇİFT (t+24h)
+─────────────────────────────────────────────────────────────────
+  UYDU             ÇÖP                             t0(km)   t24(km)       TREND     RİSK
+  ─────────────────────────────────────────────────────────────────────────────────────
+  GOKTURK 2        STARLINK-34016                11,688.2   1,462.1          🔴↓   YUKSEK
+  TURKSAT 3A       TURKSAT 5B                        26.1   1,515.3          🟢↑   YUKSEK
+  TURKSAT 4A       TURKSAT 5B                        37.8   1,515.3          🟢↑   YUKSEK
+  TURKSAT 5B       TURKSAT 5B                         0.0   1,515.3          🟢↑   YUKSEK
+  TURKSAT 6A       TURKSAT 5B                        39.1   1,515.3          🟢↑   YUKSEK
+  GOKTURK 2        STARLINK-33826                11,954.5   1,610.4          🔴↓   YUKSEK
+  GOKTURK 2        STARLINK-30261                11,848.4   1,624.8          🔴↓   YUKSEK
+  GOKTURK 2        STARLINK-35814                11,374.4   1,626.5          🔴↓   YUKSEK
+  GOKTURK 2        STARLINK-31519                11,251.7   1,649.0          🔴↓   YUKSEK
+  GOKTURK 2        STARLINK-31948                10,523.6   1,653.8          🔴↓   YUKSEK
+  TURKSAT 3A       TURKSAT 6A                        57.2   1,662.9          🟢↑   YUKSEK
+  TURKSAT 4A       TURKSAT 6A                        14.6   1,662.9          🟢↑   YUKSEK
+  TURKSAT 5B       TURKSAT 6A                        39.1   1,662.9          🟢↑   YUKSEK
+  TURKSAT 6A       TURKSAT 6A                         0.0   1,662.9          🟢↑   YUKSEK
+  GOKTURK 2        STARLINK-5757                 11,063.0   1,666.6          🔴↓   YUKSEK
+  GOKTURK 2        STARLINK-32870                10,807.7   1,672.2          🔴↓   YUKSEK
+  GOKTURK 2        STARLINK-33789                11,938.1   1,675.4          🔴↓   YUKSEK
+  TURKSAT 5A       ARABSAT-5A                       290.1   1,699.5          🟢↑   YUKSEK
+  TURKSAT 5A       ARABSAT-6A                       301.6   1,699.5          🟢↑   YUKSEK
+  TURKSAT 4B       YAMAL 601                        737.4   1,702.1          🟢↑   YUKSEK
+
+✅ Simülasyon JSON → C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output\risk_tahmin_simul.json
+
+─────────────────────────────────────────────────────────────────
+Model bilgisi: test RMSE=2336.87 km | R²=0.981028 | CV RMSE=2362.43 ± 18.15 km
+
+=================================================================
+TAMAMLANDI.
+  📁 C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output

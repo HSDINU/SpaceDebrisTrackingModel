@@ -1,0 +1,82 @@
+﻿=================================================================
+ÇARPIŞMA ROTASI DOĞRULAMA — TCA (Time of Closest Approach)
+=================================================================
+
+--- MEVCUT PİPELİNE ANALİZİ ---
+Mevcut build_real_encounters.py:
+  ✓ t0 mesafesi      : SGP4(t=şimdi) → |r_sat - r_cop|
+  ✓ t24 mesafesi     : SGP4(t=+24h)  → |r_sat - r_cop|
+  ✗ TCA (minimum)    : HESAPLANMIYOR
+  ✗ TCA zamanı       : HESAPLANMIYOR
+  ✗ Çarpışma olasılığı: HESAPLANMIYOR
+
+  → Model t0 ve t24 snapshot'unu kullanıyor.
+  → Eğer iki nesne t0–t24 ARASINDA yaklaşıp uzaklaşıyorsa
+    bu geçiş artık KALIP BİLİNMİYOR.
+  → TCA hesabı bu eksiği kapatır.
+
+Yüksek risk çifti: 2,259
+TCA hesaplanacak : 30 çift (en riskli)
+
+t0 = 2026-03-28T18:07:21.107980+00:00
+Adım = 10 dakika | Pencere = 24 saat
+(145 zaman noktası / çift)
+
+UYDU             ÇÖP                            t0(km)  t24(km)  TCA(km)        TCA_t     FARK
+------------------------------------------------------------------------------------------
+  GOKTURK 2      STARLINK-34016                13460.6   7124.8   1343.2       23.7h ⚠️ YAKALAMIYOR
+  TURKSAT 3A     TURKSAT 5B                       30.9     34.0     17.8       22.7h OK
+  TURKSAT 4A     TURKSAT 5B                       36.4     38.6      8.8        4.0h OK
+  TURKSAT 6A     TURKSAT 5B                       34.4     31.4     15.9       13.7h OK
+  TURKSAT 5B     TURKSAT 5B                        0.0      0.0      0.0        0.0h OK
+  GOKTURK 2      STARLINK-33826                13745.7   7576.4   1329.3       19.7h ⚠️ YAKALAMIYOR
+  GOKTURK 2      STARLINK-30261                13712.1   7785.3   1050.2       19.7h ⚠️ YAKALAMIYOR
+  GOKTURK 2      STARLINK-35814                13402.9   7804.5    993.1       21.3h ⚠️ YAKALAMIYOR
+  GOKTURK 2      STARLINK-31519                13231.2   7676.4   1000.7       21.3h ⚠️ YAKALAMIYOR
+  GOKTURK 2      STARLINK-31948                13219.9   9020.9    224.0       20.5h ⚠️ YAKALAMIYOR
+  TURKSAT 3A     TURKSAT 6A                       58.1     58.4     19.0       19.0h OK
+  TURKSAT 5B     TURKSAT 6A                       34.4     31.4     15.9       13.7h OK
+  TURKSAT 6A     TURKSAT 6A                        0.0      0.0      0.0        0.0h OK
+  TURKSAT 4A     TURKSAT 6A                       15.6     23.1     10.9       12.0h OK
+  GOKTURK 2      STARLINK-5757                 13317.5   8269.8    740.0       20.5h ⚠️ YAKALAMIYOR
+  GOKTURK 2      STARLINK-32870                13356.9   8918.8    458.7       20.5h ⚠️ YAKALAMIYOR
+  GOKTURK 2      STARLINK-33789                13708.5   7284.0   1289.2       22.8h ⚠️ YAKALAMIYOR
+  TURKSAT 5A     ARABSAT-6A                      302.8    308.9    302.8        0.0h OK
+  TURKSAT 5A     ARABSAT-5A                      290.1    296.1    290.1        0.0h OK
+  TURKSAT 4B     YAMAL 601                       737.3    725.6    725.6       24.0h OK
+  GOKTURK 2      STARLINK-34078                13581.0   7429.1   1392.7       20.5h ⚠️ YAKALAMIYOR
+  TURKSAT 4B     TURKSAT 4B                        0.0      0.0      0.0        0.0h OK
+  TURKSAT 4A     TURKSAT 3A                       64.7     69.5     24.9       20.7h OK
+  TURKSAT 3A     TURKSAT 3A                        0.0      0.0      0.0        0.0h OK
+  TURKSAT 6A     TURKSAT 3A                       58.1     58.4     19.0       19.0h OK
+  TURKSAT 5B     TURKSAT 3A                       30.9     34.0     17.8       22.7h OK
+  TURKSAT 5B     EXPRESS-AM7                    1475.9   1474.0   1456.7        5.8h OK
+  TURKSAT 6A     EXPRESS-AM7                    1468.5   1467.7   1464.4       21.3h OK
+  TURKSAT 4A     EXPRESS-AM7                    1458.9   1448.2   1448.2       24.0h OK
+  TURKSAT 3A     EXPRESS-AM7                    1488.1   1486.8   1435.7       13.0h OK
+
+=================================================================
+TCA DOĞRULAMA SONUÇLARI
+=================================================================
+Hesaplanan çift    : 30
+Snapshot yeterli   : 20
+Snapshot kaçırıyor : 10 (TCA > 100 km daha yakın)
+
+TCA mesafe (min)   : 0.0 km
+TCA mesafe (ortalama): 569.8 km
+TCA saat (ortalama): 14.9 saat sonra
+
+⚠️  BULGU: Bazı çiftlerin gerçek TCA'sı snapshot'tan DAHA YAKIN
+   → build_real_encounters.py güncellenmeli: TCA dahil edilmeli
+   GOKTURK 2 ↔ STARLINK-34016: snapshot=7125km → TCA=1343km (t+23.7h)
+   GOKTURK 2 ↔ STARLINK-33826: snapshot=7576km → TCA=1329km (t+19.7h)
+   GOKTURK 2 ↔ STARLINK-30261: snapshot=7785km → TCA=1050km (t+19.7h)
+   GOKTURK 2 ↔ STARLINK-35814: snapshot=7804km → TCA=993km (t+21.3h)
+   GOKTURK 2 ↔ STARLINK-31519: snapshot=7676km → TCA=1001km (t+21.3h)
+   GOKTURK 2 ↔ STARLINK-31948: snapshot=9021km → TCA=224km (t+20.5h)
+   GOKTURK 2 ↔ STARLINK-5757: snapshot=8270km → TCA=740km (t+20.5h)
+   GOKTURK 2 ↔ STARLINK-32870: snapshot=8919km → TCA=459km (t+20.5h)
+   GOKTURK 2 ↔ STARLINK-33789: snapshot=7284km → TCA=1289km (t+22.8h)
+   GOKTURK 2 ↔ STARLINK-34078: snapshot=7429km → TCA=1393km (t+20.5h)
+
+Detaylı çıktı: C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output\tca_validation.csv

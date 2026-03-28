@@ -1,0 +1,16 @@
+{
+  "all_data": {
+    "n": 156726,
+    "naive_rmse": 5906.25,
+    "lgbm_rmse": 2440.02,
+    "lgbm_r2": 0.979275
+  },
+  "no_outlier": {
+    "n": 115830,
+    "naive_rmse": 5265.62,
+    "lgbm_rmse": 2487.39,
+    "lgbm_r2": 0.977158
+  },
+  "rmse_change_pct": 1.94,
+  "r2_change": -0.002117
+}

@@ -1,0 +1,54 @@
+﻿
+=== DISCOS'tan 20 Örnek Çöp Verisi ===
+  ✅ NORAD 50032   COSMOS 1408 DEB              kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 50058   COSMOS 1408 DEB              kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 50404   COSMOS 1408 DEB              kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 50621   COSMOS 1408 DEB              kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 25730   FENGYUN 1C                   kütle=958.0 kg tür=Payload
+  ✅ NORAD 29733   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29734   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29735   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29736   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29737   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29738   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29740   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29741   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29748   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29750   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29751   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29754   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29758   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29760   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+  ✅ NORAD 29762   FENGYUN 1C DEB               kütle=None kg tür=Payload Fragmentation Debris
+
+  Bulunan: 1/20
+  Kütle dolu:   1
+  Şekil dolu:   1
+
+  Kütle dağılımı (bulunanlar):
+    Min: 958.0 kg
+    Max: 958.0 kg
+    Ort: 958.0 kg
+
+  Yere düşme skoru (fizik tabanlı):
+           isim  d_kitle_kg  d_xsect_avg_m2  discos_yere_dusme_riski
+COSMOS 1408 DEB         NaN             NaN                     0.85
+COSMOS 1408 DEB         NaN             NaN                     0.85
+COSMOS 1408 DEB         NaN             NaN                     0.85
+COSMOS 1408 DEB         NaN             NaN                     0.85
+     FENGYUN 1C       958.0        5.659467                     0.80
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85
+ FENGYUN 1C DEB         NaN             NaN                     0.85

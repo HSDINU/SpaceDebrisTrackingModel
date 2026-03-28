@@ -1,0 +1,12 @@
+﻿=== ESA DISCOS API Bağlantı Testi ===
+
+1. /objects endpoint testi...
+   ✅ Bağlandı!
+   Toplam nesne (API'de): ?
+
+   İlk 3 nesne:
+     • Calsphere 1                    NORAD=900      kütle=0.99 kg
+     • Calsphere 2                    NORAD=902      kütle=9.71 kg
+     • LCS 1                          NORAD=1361     kütle=33.7 kg
+
+   Kullanılabilir field'lar: ['cosparId', 'vimpelId', 'satno', 'name', 'objectClass', 'mass', 'shape', 'width', 'height', 'depth', 'diameter', 'span', 'xSectMax', 'xSectMin', 'xSectAvg', 'firstEpoch', 'mission', 'predDecayDate', 'active', 'cataloguedFragments', 'onOrbitCataloguedFragments']
