@@ -592,10 +592,10 @@ html_template = """
 <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
 <span class="text-[10px] font-bold text-cyan-400 font-mono" id="conjunction-count">SCANNING...</span>
 </div>
-<button class="hud-interactive p-2 hover:bg-cyan-500/10 transition-all duration-300 text-cyan-400">
+<button class="hud-interactive p-2 hover:bg-cyan-500/10 transition-all duration-300 text-cyan-400" onclick="triggerScan()" title="Yeni Tarama Başlat">
 <span class="material-symbols-outlined">sensors</span>
 </button>
-<button class="hud-interactive p-2 hover:bg-cyan-500/10 transition-all duration-300 text-cyan-400">
+<button class="hud-interactive p-2 hover:bg-cyan-500/10 transition-all duration-300 text-cyan-400" onclick="openSettings()" title="Sistem Ayarları">
 <span class="material-symbols-outlined">settings</span>
 </button>
 </div>
@@ -620,7 +620,7 @@ html_template = """
 <span class="material-symbols-outlined">schedule</span>
 <span class="font-['Space_Grotesk'] font-medium uppercase text-[10px]" id="utc-clock">UTC</span>
 </div>
-<button class="hud-interactive bg-error-container text-on-error-container text-[8px] font-black px-2 py-1 leading-tight text-center">
+<button class="hud-interactive bg-error-container text-on-error-container text-[8px] font-black px-2 py-1 leading-tight text-center" id="emergency-btn" onclick="emergencyOverride()" title="Acil: YÜKSEK tehditleri öne çıkar">
                 EMERGENCY OVERRIDE
             </button>
 </div>
@@ -690,6 +690,68 @@ html_template = """
 </div>
 </div>
 </main>
+
+<!-- ── Settings Modal ──────────────────────────── -->
+<div id="settings-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+  <div class="bg-neutral-950 border border-cyan-500/40 p-6 w-96 max-w-[90vw]" style="box-shadow:0 0 30px rgba(0,220,230,0.15)">
+    <div class="flex justify-between items-center mb-5 border-b border-cyan-500/20 pb-3">
+      <h3 class="text-cyan-400 font-black text-[11px] uppercase tracking-[0.3em] flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">settings</span>SYSTEM SETTINGS
+      </h3>
+      <button onclick="closeSettings()" class="text-neutral-400 hover:text-white transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="space-y-5">
+      <div>
+        <div class="flex justify-between mb-1">
+          <label class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest">Risk Eşiği (Tehdit Çizgisi)</label>
+          <span class="text-[10px] font-mono text-cyan-400" id="risk-threshold-val">1,000 km</span>
+        </div>
+        <input type="range" id="risk-threshold" min="500" max="10000" step="500" value="1000" class="w-full accent-cyan-400 h-1"
+               oninput="document.getElementById('risk-threshold-val').innerText=parseInt(this.value).toLocaleString()+' km'">
+        <div class="flex justify-between text-[9px] text-neutral-600 mt-1"><span>500 km</span><span>10,000 km</span></div>
+      </div>
+      <div>
+        <div class="flex justify-between mb-1">
+          <label class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest">Debris Boyutu</label>
+          <span class="text-[10px] font-mono text-cyan-400" id="debris-size-val">1.0x</span>
+        </div>
+        <input type="range" id="debris-size" min="0.5" max="3" step="0.5" value="1" class="w-full accent-cyan-400 h-1"
+               oninput="document.getElementById('debris-size-val').innerText=parseFloat(this.value).toFixed(1)+'x'">
+        <div class="flex justify-between text-[9px] text-neutral-600 mt-1"><span>0.5x (küçük)</span><span>3.0x (büyük)</span></div>
+      </div>
+      <div>
+        <div class="flex justify-between mb-1">
+          <label class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest">Orbit Hızı</label>
+          <span class="text-[10px] font-mono text-cyan-400" id="orbit-speed-val">1.0x</span>
+        </div>
+        <input type="range" id="orbit-speed" min="0" max="4" step="0.5" value="1" class="w-full accent-cyan-400 h-1"
+               oninput="document.getElementById('orbit-speed-val').innerText=parseFloat(this.value).toFixed(1)+'x'">
+        <div class="flex justify-between text-[9px] text-neutral-600 mt-1"><span>0 (durdur)</span><span>4.0x (hızlı)</span></div>
+      </div>
+      <div class="pt-3 border-t border-white/10 space-y-3">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="show-lines" checked class="accent-cyan-400 w-4 h-4 cursor-pointer">
+          <span class="text-[10px] text-neutral-300 uppercase font-bold tracking-widest">Tehdit Çizgileri</span>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="show-orbit-rings" class="accent-cyan-400 w-4 h-4 cursor-pointer">
+          <span class="text-[10px] text-neutral-300 uppercase font-bold tracking-widest">Yörünge Halkaları (LEO / MEO / GEO)</span>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="earth-rotate" checked class="accent-cyan-400 w-4 h-4 cursor-pointer">
+          <span class="text-[10px] text-neutral-300 uppercase font-bold tracking-widest">Dünya Rotasyonu</span>
+        </label>
+      </div>
+    </div>
+    <button onclick="applySettings()"
+            class="mt-5 w-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-400 text-[10px] font-black py-2.5 uppercase tracking-widest hover:bg-cyan-400 hover:text-black transition-all duration-300">
+      ✓ &nbsp; UYGULA
+    </button>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
@@ -711,6 +773,19 @@ html_template = """
         let satelliteSprites = [];
         let debrisSprites = [];
         const keyState = {};
+
+        // ── Global ayar durumu ──────────────────────────────────────────
+        let appSettings = {
+            riskThreshold:       1000,
+            debrisSizeMultiplier: 1.0,
+            orbitSpeedMultiplier: 1.0,
+            showLines:            true,
+            showOrbitRings:       false,
+            earthRotate:          true,
+            emergencyMode:        false,
+        };
+        let orbitRingObjects  = [];
+        let emergencyModeActive = false;
 
         window.addEventListener('keydown', (e) => { keyState[e.code] = true; });
         window.addEventListener('keyup',   (e) => { keyState[e.code] = false; });
@@ -758,6 +833,155 @@ html_template = """
             ctx.closePath(); ctx.fill();
             ctx.strokeStyle = '#5D2906'; ctx.lineWidth = 2; ctx.stroke();
             return new THREE.CanvasTexture(canvas);
+        }
+
+        // ── Settings Modal ──────────────────────────────────────────────
+        function openSettings() {
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+        function _sliderLabel(id, val, suffix, useComma) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = (useComma ? parseInt(val).toLocaleString() : parseFloat(val).toFixed(1)) + suffix;
+        }
+        function applySettings() {
+            const threshold = parseInt(document.getElementById('risk-threshold').value);
+            const debSize   = parseFloat(document.getElementById('debris-size').value);
+            const speed     = parseFloat(document.getElementById('orbit-speed').value);
+            const showLines = document.getElementById('show-lines').checked;
+            const showRings = document.getElementById('show-orbit-rings').checked;
+            const earthRot  = document.getElementById('earth-rotate').checked;
+
+            appSettings.riskThreshold        = threshold;
+            appSettings.debrisSizeMultiplier = debSize;
+            appSettings.orbitSpeedMultiplier = speed;
+            appSettings.showLines            = showLines;
+            appSettings.earthRotate          = earthRot;
+
+            // Debris boyutlarını anlık güncelle
+            debrisSprites.forEach(s => {
+                const base = s.userData.risk_class === 'KRITIK' ? 12
+                           : s.userData.risk_class === 'YUKSEK' ? 10 : 8;
+                const sz = base * debSize;
+                s.scale.set(sz, sz, 1);
+            });
+
+            // Yörünge halkalarını aç/kapat
+            if (showRings !== appSettings.showOrbitRings) {
+                appSettings.showOrbitRings = showRings;
+                if (showRings) addOrbitRings(); else removeOrbitRings();
+            }
+
+            addLog('Ayarlar uygulandı — eşik: ' + threshold.toLocaleString() + ' km | hız: ' + speed.toFixed(1) + 'x | debris: ' + debSize.toFixed(1) + 'x');
+            closeSettings();
+        }
+
+        // ── Yörünge halkaları ────────────────────────────────────────────
+        function addOrbitRings() {
+            removeOrbitRings();
+            const defs = [
+                { r: 122, color: 0xff6600, opacity: 0.25, label: 'LEO' },
+                { r: 140, color: 0xffaa00, opacity: 0.20, label: 'LEO+' },
+                { r: 180, color: 0x00ffaa, opacity: 0.18, label: 'MEO' },
+                { r: 265, color: 0x4488ff, opacity: 0.15, label: 'GEO' },
+            ];
+            defs.forEach(d => {
+                const geo  = new THREE.RingGeometry(d.r - 0.5, d.r + 0.5, 128);
+                const mat  = new THREE.MeshBasicMaterial({ color: d.color, side: THREE.DoubleSide, transparent: true, opacity: d.opacity });
+                const ring = new THREE.Mesh(geo, mat);
+                ring.rotation.x = Math.PI / 2;
+                scene.add(ring);
+                orbitRingObjects.push(ring);
+            });
+            addLog('Yörünge halkaları aktif — LEO / LEO+ / MEO / GEO');
+        }
+        function removeOrbitRings() {
+            orbitRingObjects.forEach(r => scene.remove(r));
+            orbitRingObjects = [];
+        }
+
+        // ── Sensors: tarama animasyonu ──────────────────────────────────
+        function triggerScan() {
+            const countEl = document.getElementById('conjunction-count');
+            const steps   = ['◌ SCANNING...', '● SCANNING ██', '● SCANNING ████', '✓ SCAN COMPLETE'];
+            let i = 0;
+            addLog('Manuel tarama başlatıldı...');
+            const iv = setInterval(() => {
+                if (countEl) countEl.innerText = steps[i] || steps[steps.length - 1];
+                i++;
+                if (i >= steps.length) {
+                    clearInterval(iv);
+                    setTimeout(() => {
+                        const ny = pipelineMeta.n_yuksek || 0;
+                        const nk = pipelineMeta.n_kritik || 0;
+                        if (countEl) countEl.innerText = 'ML→ YÜKSEK: ' + ny.toLocaleString() + ' | KRİTİK: ' + nk + ' | CANLI: ' + conjunctions.length;
+                        addLog('Tarama tamamlandı — ' + (ny + nk).toLocaleString() + ' aktif tehdit tespit edildi');
+                        addLog('Veri tarihi: ' + pipelineMeta.hesap_utc + ' UTC');
+                    }, 600);
+                }
+            }, 320);
+        }
+
+        // ── Emergency Override ──────────────────────────────────────────
+        function emergencyOverride() {
+            emergencyModeActive = !emergencyModeActive;
+            appSettings.emergencyMode = emergencyModeActive;
+            const btn         = document.getElementById('emergency-btn');
+            const alertBanner = document.getElementById('multi-collision-alert');
+
+            if (emergencyModeActive) {
+                // YÜKSEK/KRİTİK debris büyüt, diğerlerini soldur
+                assets.forEach(s => {
+                    if (s.userData.type !== 'DEBRIS') return;
+                    const rc = s.userData.risk_class;
+                    const isHigh = rc === 'YUKSEK' || rc === 'KRITIK';
+                    const sz = isHigh ? 16 : 5;
+                    s.scale.set(sz, sz, 1);
+                    s.material.opacity = isHigh ? 1.0 : 0.08;
+                });
+                // Kamerayı en yüksek tehditli uyduya yaklaştır
+                const topSat = satelliteSprites.reduce((b, s) =>
+                    (s.userData.yuksek || 0) > (b.userData.yuksek || 0) ? s : b,
+                    satelliteSprites[0]
+                );
+                if (topSat) {
+                    const p = topSat.position;
+                    controls.target.set(p.x * 0.3, p.y * 0.3, p.z * 0.3);
+                    camera.position.set(p.x * 2, p.y * 2 + 60, p.z * 2);
+                    controls.update();
+                }
+                alertBanner.classList.remove('hidden');
+                if (btn) { btn.style.background = 'rgba(220,38,38,0.95)'; btn.style.color = '#fff'; btn.innerText = '✕ ACİL KAPT'; }
+                addLog('⚠ ACİL DURUM MODU AKTİF');
+                addLog('YÜKSEK risk: ' + (pipelineMeta.n_yuksek || 0).toLocaleString() + ' çift vurgulandı');
+            } else {
+                // Orijinal boyut ve saydamlığa dön
+                assets.forEach(s => {
+                    if (s.userData.type !== 'DEBRIS') return;
+                    const rc = s.userData.risk_class;
+                    const base = rc === 'KRITIK' ? 12 : rc === 'YUKSEK' ? 10 : 8;
+                    const sz = base * appSettings.debrisSizeMultiplier;
+                    s.scale.set(sz, sz, 1);
+                    s.material.opacity = 1.0;
+                });
+                alertBanner.classList.add('hidden');
+                if (btn) { btn.style.background = ''; btn.style.color = ''; btn.innerText = 'EMERGENCY OVERRIDE'; }
+                addLog('Acil durum modu kapatıldı — normal görünüm');
+            }
+        }
+
+        // ── Log yardımcısı ──────────────────────────────────────────────
+        function addLog(msg) {
+            const c = document.getElementById('log-container');
+            if (!c) return;
+            const div = document.createElement('div');
+            div.className = 'text-[10px] font-mono text-on-surface-variant flex gap-2';
+            const t = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            div.innerHTML = '<span class="text-cyan-500">[' + t + ']</span><span>' + msg + '</span>';
+            c.prepend(div);
+            if (c.children.length > 12) c.lastChild.remove();
         }
 
         // ── Sahne başlatma ──────────────────────────────────────────────
@@ -930,10 +1154,12 @@ html_template = """
         function updateDashedLines() {
             lines.forEach(line => scene.remove(line));
             lines = [];
+            if (!appSettings.showLines) return;          // ayardan kapalıysa çizme
             conjunctions.slice(0, 5).forEach(con => {
                 const points   = [con.satellite.position, con.debris.position];
                 const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                const material = new THREE.LineDashedMaterial({ color: 0xff4444, dashSize: 3, gapSize: 2 });
+                const lineColor = appSettings.emergencyMode ? 0xff0000 : 0xff4444;
+                const material = new THREE.LineDashedMaterial({ color: lineColor, dashSize: 3, gapSize: 2 });
                 const line     = new THREE.Line(geometry, material);
                 line.computeLineDistances();
                 scene.add(line);
@@ -1196,13 +1422,16 @@ html_template = """
             requestAnimationFrame(animate);
             const time = performance.now() * 0.0001;
 
-            if (earth) earth.rotation.y += 0.0003;
+            if (earth) {
+                if (appSettings.earthRotate) earth.rotation.y += 0.0003;
+            }
             updateKeyboardControls();
 
             assets.forEach((s, i) => {
                 const orbitRadius = s.userData.orbit;
                 const offset      = s.userData.offset || 0;
-                const speed       = s.userData.type === 'SATELLITE' ? 0.7 : 1.2;
+                const baseSpeed   = s.userData.type === 'SATELLITE' ? 0.7 : 1.2;
+                const speed       = baseSpeed * appSettings.orbitSpeedMultiplier;
                 const angle       = (time * speed) + offset;
 
                 if      (i % 3 === 0) { s.position.x = Math.cos(angle) * orbitRadius; s.position.z = Math.sin(angle) * orbitRadius; }
