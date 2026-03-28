@@ -122,26 +122,35 @@ with st.sidebar:
     st.divider()
 
     if DATA_READY:
-        meta        = simul.get("meta", {})
-        risk_ozeti  = simul.get("risk_ozeti", {})
-        uydu_ozeti  = simul.get("uydu_ozeti", {})
+        meta       = simul.get("meta", {})
+        risk_ozeti = simul.get("risk_ozeti", {})
+        uydu_ozeti = simul.get("uydu_ozeti", {})
 
-        # Pipeline meta
+        # ── 1. Pipeline Durumu ─────────────────────────────────
         st.markdown("### 📡 Pipeline Durumu")
         ts = meta.get("hesap_utc", "")[:19] or "Bilinmiyor"
         st.markdown(f"**Son güncelleme:** `{ts} UTC`")
         st.markdown(f"**Model:** `{meta.get('model', 'LightGBM')}`")
-        st.markdown(f"**Toplam çift:** `{meta.get('n_toplam_cift', 0):,}`")
+
+        c1, c2, c3 = st.columns(3)
+        n_toplam = meta.get("n_toplam_cift", 0)
+        with c1:
+            st.metric("Toplam Çift", f"{n_toplam:,}")
+        with c2:
+            st.metric("Uydu", len(uydu_ozeti))
+        with c3:
+            st.metric("Debris", f"{len(all_debris_df):,}" if not all_debris_df.empty else "—")
 
         st.divider()
 
-        # Risk özeti
+        # ── 2. Risk Özeti ──────────────────────────────────────
         st.markdown("### ⚠️ Risk Özeti")
+        n_k = risk_ozeti.get("KRITIK", 0)
+        n_y = risk_ozeti.get("YUKSEK", 0)
+        n_o = risk_ozeti.get("ORTA",   0)
+        n_d = risk_ozeti.get("DUSUK",  0)
+
         c1, c2 = st.columns(2)
-        n_k  = risk_ozeti.get("KRITIK", 0)
-        n_y  = risk_ozeti.get("YUKSEK", 0)
-        n_o  = risk_ozeti.get("ORTA", 0)
-        n_d  = risk_ozeti.get("DUSUK", 0)
         with c1:
             st.metric("🔴 KRİTİK", n_k)
             st.metric("🟡 ORTA",   f"{n_o:,}")
@@ -149,45 +158,137 @@ with st.sidebar:
             st.metric("🟠 YÜKSEK", f"{n_y:,}")
             st.metric("🟢 DÜŞÜK",  f"{n_d:,}")
 
+        # Risk dağılımı progress barları
+        if n_toplam > 0:
+            for label, val, color in [
+                ("YÜKSEK", n_y, "🟠"),
+                ("ORTA",   n_o, "🟡"),
+                ("DÜŞÜK",  n_d, "🟢"),
+            ]:
+                pct = val / n_toplam
+                st.caption(f"{color} {label}: **{pct:.1%}** ({val:,})")
+                st.progress(pct)
+
         st.divider()
 
-        # Uydu bazlı tehditler
-        st.markdown("### 🛰️ Uydu Tehdit Tablosu")
-        rows = []
-        for uydu_ad, d in uydu_ozeti.items():
-            rows.append({
-                "Uydu":              uydu_ad,
-                "Kritik":            d.get("kritik_sayisi", 0),
-                "Yüksek":            d.get("yuksek_sayisi", 0),
-                "En Yakın (km)":     round(d.get("en_yakin_tahmin_km", 0), 0),
-                "En Yakın Cisim":    d.get("en_yakin_cop", "-"),
-            })
-        if rows:
-            st.dataframe(
-                pd.DataFrame(rows),
-                hide_index=True,
-                use_container_width=True,
-            )
+        # ── 3. Uydu Tehdit Tablosu ─────────────────────────────
+        st.markdown("### 🛰️ Uydu Tehdit Durumu")
 
-        # Model metrikleri
+        for uydu_ad, d in sorted(
+            uydu_ozeti.items(),
+            key=lambda x: x[1].get("en_yakin_tahmin_km", 9e9)
+        ):
+            n_krit   = d.get("kritik_sayisi", 0)
+            n_yuk    = d.get("yuksek_sayisi", 0)
+            en_yakin = d.get("en_yakin_tahmin_km", 0)
+            en_cop   = d.get("en_yakin_cop", "-")
+
+            badge = "🔴" if n_krit > 0 else ("🟠" if n_yuk > 0 else "🟢")
+            with st.expander(f"{badge} {uydu_ad} — {en_yakin:,.0f} km", expanded=False):
+                cc1, cc2 = st.columns(2)
+                with cc1:
+                    st.metric("Kritik",  n_krit)
+                    st.metric("Yüksek",  f"{n_yuk:,}")
+                with cc2:
+                    st.metric("En Yakın", f"{en_yakin:,.0f} km")
+                st.caption(f"**Cisim:** {en_cop}")
+
+        st.divider()
+
+        # ── 4. Model Metrikleri ────────────────────────────────
         if model_rpt:
-            st.divider()
+            lgb   = model_rpt.get("lightgbm",       {})
+            naive = model_rpt.get("baseline_naive",  {})
+            res   = model_rpt.get("residual_analysis", {})
+            fimp  = model_rpt.get("feature_importance", {})
+            n_tr  = model_rpt.get("n_train", 0)
+            n_te  = model_rpt.get("n_test",  0)
+            n_ft  = model_rpt.get("n_features", 0)
+
             st.markdown("### 🤖 Model Metrikleri")
-            lgb   = model_rpt.get("lightgbm", {})
-            naive = model_rpt.get("baseline_naive", {})
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown("**LightGBM**")
-                st.metric("Test RMSE", f"{lgb.get('test_rmse', 0):.0f} km")
-                st.metric("R²",        f"{lgb.get('test_r2', 0):.4f}")
-                st.metric("CV RMSE",
-                          f"{lgb.get('cv_rmse_mean', 0):.0f} "
-                          f"±{lgb.get('cv_rmse_std', 0):.0f} km")
-            with c2:
-                st.markdown("**Naive Baseline**")
-                st.metric("RMSE", f"{naive.get('rmse', 0):.0f} km")
-                st.metric("R²",   f"{naive.get('r2', 0):.4f}")
-                st.metric("Özellik", f"{model_rpt.get('n_features', 0)}")
+
+            # Dataset özeti
+            st.caption("**Dataset**")
+            dc1, dc2, dc3 = st.columns(3)
+            with dc1: st.metric("Eğitim",    f"{n_tr:,}")
+            with dc2: st.metric("Test",       f"{n_te:,}")
+            with dc3: st.metric("Özellik",    n_ft)
+
+            st.caption("**LightGBM vs Naive Baseline**")
+
+            # Karşılaştırma tablosu
+            lgb_rmse  = lgb.get("test_rmse",  0)
+            lgb_mae   = lgb.get("test_mae",   0)
+            lgb_mape  = lgb.get("test_mape",  0)
+            lgb_r2    = lgb.get("test_r2",    0)
+            lgb_cvr   = lgb.get("cv_rmse_mean", 0)
+            lgb_cvs   = lgb.get("cv_rmse_std",  0)
+            n_rmse    = naive.get("rmse", 0)
+            n_mae     = naive.get("mae",  0)
+            n_mape    = naive.get("mape", 0)
+            n_r2      = naive.get("r2",   0)
+
+            rmse_imp = (n_rmse - lgb_rmse) / n_rmse * 100 if n_rmse else 0
+            mae_imp  = (n_mae  - lgb_mae)  / n_mae  * 100 if n_mae  else 0
+            r2_imp   = (lgb_r2 - n_r2) * 100
+
+            comp_df = pd.DataFrame({
+                "Metrik": ["RMSE (km)", "MAE (km)", "MAPE (%)", "R²"],
+                "LightGBM": [
+                    f"{lgb_rmse:,.1f}",
+                    f"{lgb_mae:,.1f}",
+                    f"{lgb_mape:.2f}",
+                    f"{lgb_r2:.4f}",
+                ],
+                "Naive": [
+                    f"{n_rmse:,.1f}",
+                    f"{n_mae:,.1f}",
+                    f"{n_mape:.2f}",
+                    f"{n_r2:.4f}",
+                ],
+                "İyileşme": [
+                    f"▼ {rmse_imp:.1f}%",
+                    f"▼ {mae_imp:.1f}%",
+                    "—",
+                    f"▲ {r2_imp:.1f}pp",
+                ],
+            })
+            st.dataframe(comp_df, hide_index=True, use_container_width=True)
+
+            # CV sonuçları
+            st.caption(f"**5-Katlı CV RMSE:** `{lgb_cvr:,.0f} ± {lgb_cvs:.0f} km`")
+
+            # Residual analiz
+            st.caption("**Residual Analizi**")
+            rc1, rc2 = st.columns(2)
+            with rc1:
+                st.metric("±100 km içinde", f"{res.get('pct_within_100km', 0):.1f}%")
+            with rc2:
+                st.metric("±500 km içinde", f"{res.get('pct_within_500km', 0):.1f}%")
+
+            # Feature importance — top 8
+            st.caption("**Feature Importance (Top 8)**")
+            if fimp:
+                top_fi = sorted(fimp.items(), key=lambda x: x[1], reverse=True)[:8]
+                fi_max = top_fi[0][1] if top_fi else 1
+                fi_labels = {
+                    "mesafe_t0_km":        "T₀ Mesafe",
+                    "cop_raan_deg":        "RAAN",
+                    "hiz_t0_km_s":         "T₀ Hız",
+                    "cop_inclination_deg": "Eğim",
+                    "sma_diff_km":         "SMA Farkı",
+                    "cop_eccentricity":    "Eksantrisite",
+                    "cop_bstar":           "B*",
+                    "cop_mean_motion":     "Ort. Hareket",
+                    "cop_mean_anomaly_deg":"Ort. Anomali",
+                    "cop_arg_perigee_deg": "Arg. Perige",
+                }
+                for feat, score in top_fi:
+                    label = fi_labels.get(feat, feat)
+                    pct   = score / fi_max
+                    st.caption(f"`{label}` — {score:,}")
+                    st.progress(pct)
+
     else:
         st.warning("⚠️ Pipeline çıktısı bulunamadı.")
         st.info(
