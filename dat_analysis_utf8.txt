@@ -1,0 +1,221 @@
+﻿======================================================================
+🛰️  Space Debris Tracking Model — .dat Dosyası Parser & Analiz
+======================================================================
+
+   📋 Örnek Veri (sat (Uydu Yörünge Verileri) — ilk 2 dosya, 5 satır):
+
+   [elesat001.dat] (1096 satır)
+        Zaman       a (km)            e      i (°)      Ω (°)      ω (°)      M (°)
+   ----------------------------------------------------------------------------
+     -7305.00     42257.78    0.0997661     8.1313    20.6660   112.9348   299.4938
+     -7295.00     42257.53    0.0996962     8.1038    18.8144   113.1322   299.3533
+     -7285.00     42257.51    0.0993803     8.0720    16.7408   113.3896   299.2464
+     -7275.00     42259.36    0.0993218     8.0484    14.5010   113.6801   299.1211
+     -7265.00     42261.29    0.0995367     8.0274    12.1698   113.9711   298.9272
+   ... (1091 satır daha)
+
+   [elesat002.dat] (1096 satır)
+        Zaman       a (km)            e      i (°)      Ω (°)      ω (°)      M (°)
+   ----------------------------------------------------------------------------
+     -7305.00     42252.82    0.0262075     2.0394   210.9401   219.2642   198.4039
+     -7295.00     42251.53    0.0262809     2.0427   209.5885   220.4237   197.4544
+     -7285.00     42251.06    0.0262583     2.0435   208.2486   221.7121   196.3191
+     -7275.00     42253.27    0.0262008     2.0419   207.0194   222.5595   195.4080
+     -7265.00     42255.08    0.0262540     2.0483   205.3455   223.4368   194.7614
+   ... (1091 satır daha)
+
+======================================================================
+📂 sat (Uydu Yörünge Verileri)
+======================================================================
+   Dosya sayısı       : 100
+   Toplam veri noktası: 109600
+   Dosya başına satır : min=1096, max=1096, ort=1096.0
+
+   Parametre                                    Min          Max     Ortalama          Std
+   -----------------------------------------------------------------------------------
+   Zaman (gün)                           -7305.0000    3645.0000   -1830.0000    3163.8782
+   Yarı Büyük Eksen a (km)               42244.5100   42265.6000   42254.8349       3.8579
+   Eksantrisite e                            0.0028       0.1108       0.0530       0.0280
+   Eğim i (derece)                           0.0862      24.5084      11.6356       5.2108
+   RAAN Ω (derece)                           0.0037     359.9987     180.6912     103.8767
+   Periapsis Argümanı ω (derece)             0.0093     359.9973     182.3421     104.9519
+   Ortalama Anomali M (derece)               0.0013     359.9997     109.8955     121.1026
+
+   📊 Türetilmiş Parametreler (ortalama değerlerden):
+      Periapsis irtifası  : 33643.6 km
+      Apoapsis irtifası   : 38124.1 km
+      Yörünge periyodu    : 24.01 saat
+      Tahmini yörünge tipi: GEO (Jeosenkron)
+
+   📈 Eksantrisite Dağılımı:
+      e < 0.01 (dairesel)      :   9894 (  9.0%)
+      0.01 ≤ e < 0.1            :  96911 ( 88.4%)
+      0.1 ≤ e < 0.3             :   2795 (  2.6%)
+      0.3 ≤ e < 0.5             :      0 (  0.0%)
+      e ≥ 0.5 (yüksek eliptik)  :      0 (  0.0%)
+
+   📐 Eğim Dağılımı:
+      i < 5° (ekvatoryal)       :  14254 ( 13.0%)
+      5° ≤ i < 30°              :  95346 ( 87.0%)
+      30° ≤ i < 60°             :      0 (  0.0%)
+      60° ≤ i < 90°             :      0 (  0.0%)
+      i ≥ 90° (retrograde)      :      0 (  0.0%)
+   💾 CSV kaydedildi: C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\sat_combined.csv
+
+   📋 Örnek Veri (deb_train (Enkaz Eğitim Verileri) — ilk 2 dosya, 5 satır):
+
+   [eledebtrain001.dat] (4 satır)
+        Zaman       a (km)            e      i (°)      Ω (°)      ω (°)      M (°)
+   ----------------------------------------------------------------------------
+     -1935.00     42276.74    0.0507489    13.4614   107.7131   188.8823     5.8539
+      -255.00     42276.71    0.1804960    13.4489   194.6175    21.4868   357.8997
+      6195.00     42282.78    0.0470694    11.0170    75.7410   279.1345   362.3818
+      6385.00     42321.28    0.1882959    10.9412   168.1598    92.0366   355.8997
+
+   [eledebtrain002.dat] (10 satır)
+        Zaman       a (km)            e      i (°)      Ω (°)      ω (°)      M (°)
+   ----------------------------------------------------------------------------
+      -715.00     42192.72    0.4072139    28.1940   351.5995   272.5405   357.0113
+      -235.00     42271.82    0.0637583    27.2531   112.5560   338.9246   348.3112
+       755.00     42296.68    0.3650661    22.3616   154.3212   302.8574   324.2259
+      1125.00     42227.96    0.3521713    19.5906    11.4006   313.6472   321.9356
+      1725.00     42306.90    0.3791809    13.9704   222.5606   252.5172   312.3040
+   ... (5 satır daha)
+
+======================================================================
+📂 deb_train (Enkaz Eğitim Verileri)
+======================================================================
+   Dosya sayısı       : 100
+   Toplam veri noktası: 751
+   Dosya başına satır : min=1, max=15, ort=7.5
+
+   Parametre                                    Min          Max     Ortalama          Std
+   -----------------------------------------------------------------------------------
+   Zaman (gün)                           -4995.0000    7295.0000    2803.2690    2952.0702
+   Yarı Büyük Eksen a (km)               41799.4000   42359.7000   42248.7363      63.7316
+   Eksantrisite e                            0.0021       0.8348       0.1603       0.1754
+   Eğim i (derece)                           0.3707      44.6073      16.0363       7.5094
+   RAAN Ω (derece)                           0.2011     363.5325     179.8335     102.0151
+   Periapsis Argümanı ω (derece)             0.0422     363.3700     186.3119     106.5847
+   Ortalama Anomali M (derece)               0.3063     366.1566     203.7649     150.9051
+
+   📊 Türetilmiş Parametreler (ortalama değerlerden):
+      Periapsis irtifası  : 29105.7 km
+      Apoapsis irtifası   : 42649.7 km
+      Yörünge periyodu    : 24.01 saat
+      Tahmini yörünge tipi: GEO (Jeosenkron)
+
+   📈 Eksantrisite Dağılımı:
+      e < 0.01 (dairesel)      :     15 (  2.0%)
+      0.01 ≤ e < 0.1            :    389 ( 51.8%)
+      0.1 ≤ e < 0.3             :    226 ( 30.1%)
+      0.3 ≤ e < 0.5             :     57 (  7.6%)
+      e ≥ 0.5 (yüksek eliptik)  :     64 (  8.5%)
+
+   📐 Eğim Dağılımı:
+      i < 5° (ekvatoryal)       :     25 (  3.3%)
+      5° ≤ i < 30°              :    674 ( 89.7%)
+      30° ≤ i < 60°             :     52 (  6.9%)
+      60° ≤ i < 90°             :      0 (  0.0%)
+      i ≥ 90° (retrograde)      :      0 (  0.0%)
+   💾 CSV kaydedildi: C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\deb_train_combined.csv
+
+   📋 Örnek Veri (deb_test (Enkaz Test Verileri) — ilk 2 dosya, 5 satır):
+
+   [eledebnewfd001.dat] (3 satır)
+        Zaman       a (km)            e      i (°)      Ω (°)      ω (°)      M (°)
+   ----------------------------------------------------------------------------
+     -2705.00     42218.91    0.0440293    17.2489     8.9998    53.0336    18.2197
+     -1175.00     42196.05    0.0388596    18.2316    31.7042   100.0266   358.4582
+      6245.00     42262.75    0.0404009     7.0164   213.1170   323.9927   276.8607
+
+   [eledebnewfd002.dat] (9 satır)
+        Zaman       a (km)            e      i (°)      Ω (°)      ω (°)      M (°)
+   ----------------------------------------------------------------------------
+       955.00     42274.76    0.1445822    11.9657   275.5726   113.6497    22.3424
+      1445.00     42249.25    0.0707234    12.2470   178.3093   165.3546    19.7580
+      1925.00     42228.62    0.0673934    12.6762   224.7801    84.7816    16.9751
+      3185.00     42255.47    0.1425010    13.7020    46.4721   164.2839    10.1427
+      4575.00     42256.25    0.1079576    14.7500   302.8191   159.4454   356.3397
+   ... (4 satır daha)
+
+======================================================================
+📂 deb_test (Enkaz Test Verileri)
+======================================================================
+   Dosya sayısı       : 100
+   Toplam veri noktası: 751
+   Dosya başına satır : min=1, max=15, ort=7.5
+
+   Parametre                                    Min          Max     Ortalama          Std
+   -----------------------------------------------------------------------------------
+   Zaman (gün)                           -5305.0000    7305.0000    2728.2091    2891.3093
+   Yarı Büyük Eksen a (km)               39048.4800   42362.7200   42217.9458     274.5615
+   Eksantrisite e                            0.0010       0.8737       0.1662       0.1900
+   Eğim i (derece)                           0.5901      54.5231      17.1074       7.7877
+   RAAN Ω (derece)                           0.3492     360.6173     176.9053     102.9285
+   Periapsis Argümanı ω (derece)             2.0689     362.2693     178.8032     101.9447
+   Ortalama Anomali M (derece)               0.0716     365.0240     191.1833     152.6011
+
+   📊 Türetilmiş Parametreler (ortalama değerlerden):
+      Periapsis irtifası  : 28830.2 km
+      Apoapsis irtifası   : 42863.7 km
+      Yörünge periyodu    : 23.98 saat
+      Tahmini yörünge tipi: GEO (Jeosenkron)
+
+   📈 Eksantrisite Dağılımı:
+      e < 0.01 (dairesel)      :     17 (  2.3%)
+      0.01 ≤ e < 0.1            :    428 ( 57.0%)
+      0.1 ≤ e < 0.3             :    191 ( 25.4%)
+      0.3 ≤ e < 0.5             :     44 (  5.9%)
+      e ≥ 0.5 (yüksek eliptik)  :     71 (  9.5%)
+
+   📐 Eğim Dağılımı:
+      i < 5° (ekvatoryal)       :     22 (  2.9%)
+      5° ≤ i < 30°              :    682 ( 90.8%)
+      30° ≤ i < 60°             :     47 (  6.3%)
+      60° ≤ i < 90°             :      0 (  0.0%)
+      i ≥ 90° (retrograde)      :      0 (  0.0%)
+   💾 CSV kaydedildi: C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\deb_test_combined.csv
+
+======================================================================
+📊 KARŞILAŞTIRMALI ÖZET
+======================================================================
+
+Parametre                 Uydu Yörünge Verileri Enkaz Eğitim Verileri  Enkaz Test Verileri
+-------------------------------------------------------------------------------------
+Semi Major Axis Km                  42254.8349           42248.7363           42217.9458
+Eccentricity                            0.0530               0.1603               0.1662
+Inclination Deg                        11.6356              16.0363              17.1074
+Raan Deg                              180.6912             179.8335             176.9053
+Arg Perigee Deg                       182.3421             186.3119             178.8032
+Mean Anomaly Deg                      109.8955             203.7649             191.1833
+
+======================================================================
+📝 YORUM VE ANALİZ
+======================================================================
+
+1. VERİ FORMATI:
+   Her .dat dosyası Keplerian yörünge elemanlarını içerir (6 parametre + zaman).
+   Bu, bir cismin uzaydaki yörüngesini tam olarak tanımlayan klasik formattır.
+
+2. VERİ SETLERİ:
+   • sat/       : 100 dosya — uyduların zaman serileri (her biri ~1097 veri noktası)
+                   Düzenli aralıklı (10 günde bir), uzun süreli yörünge izleme.
+   • deb_train/ : 100 dosya — uzay enkazı eğitim verileri (1-15 veri noktası/dosya)
+                   Seyrek gözlemler, düzensiz zaman aralıkları.
+   • deb_test/  : 100 dosya — uzay enkazı test verileri (1-15 veri noktası/dosya)
+                   Modelin doğruluğunun test edilmesi için ayrılmış veri.
+
+3. YÖRÜNGE ÖZELLİKLERİ:
+   • Uydu verileri: a ≈ 42,258 km → GEO yörüngesi (jeosenkron, ~24 saat periyot)
+                    e ≈ 0.10 → hafif eliptik yörünge
+   • Enkaz verileri: Çok daha yüksek eksantrisite değişkenliği (0.04 - 0.59)
+                     Daha geniş eğim aralığı → kaotik yörüngeler
+
+4. MAKİNE ÖĞRENMESİ PERSPEKTİFİ:
+   Bu veri seti, uzay enkazının yörünge tahminini (orbit prediction) öğrenmek
+   için tasarlanmış bir train/test yapısıdır:
+   • sat/ : Referans uydu yörüngeleri (kararlı, düzenli)
+   • deb_train/ : Enkazın seyrek gözlemlerinden yörünge tahmini eğitimi
+   • deb_test/ : Tahmin doğruluğunun değerlendirilmesi
+
