@@ -1,0 +1,122 @@
+﻿=================================================================
+🛰️  Risk Tahmin Motoru — Simülasyon Çıktısı
+=================================================================
+Feature sayısı: 22
+Toplam çift   : 156,726
+
+Tahmin yapılıyor...
+Malzeme riski entegre ediliyor...
+
+✅ Tüm çiftler → C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output\risk_tahmin_tum.csv (156,726 satır)
+✅ Kritik+Yüksek → C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output\risk_tahmin_kritik.csv (2,259 çift)
+
+─────────────────────────────────────────────────────────────────
+RİSK DAĞILIMI
+─────────────────────────────────────────────────────────────────
+  KRITIK  (<1,000 km   )       0  (  0.0%)  
+  YUKSEK  (1k-5k km    )   2,259  (  1.4%)  
+  ORTA    (5k-15k km   )  48,075  ( 30.7%)  ████████████
+  DUSUK   (>15k km     ) 106,392  ( 67.9%)  ███████████████████████████
+
+─────────────────────────────────────────────────────────────────
+UYDU BAZLI ÖZET
+─────────────────────────────────────────────────────────────────
+  GOKTURK 1A        KRİTİK=   0  YÜKSEK= 348  En yakın:  2,867.3 km  ← GOKTURK 1A
+  GOKTURK 2         KRİTİK=   0  YÜKSEK=1007  En yakın:  1,462.1 km  ← STARLINK-34016
+  IMECE             KRİTİK=   0  YÜKSEK= 762  En yakın:  2,172.8 km  ← STARLINK-5039
+  TURKSAT 3A        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,515.3 km  ← TURKSAT 5B
+  TURKSAT 4A        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,515.3 km  ← TURKSAT 5B
+  TURKSAT 4B        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,702.1 km  ← YAMAL 601
+  TURKSAT 5A        KRİTİK=   0  YÜKSEK=  22  En yakın:  1,699.5 km  ← ARABSAT-5A
+  TURKSAT 5B        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,515.3 km  ← TURKSAT 5B
+  TURKSAT 6A        KRİTİK=   0  YÜKSEK=  24  En yakın:  1,515.3 km  ← TURKSAT 5B
+
+───────────────────────────────────────────────────────────────────────────
+EN RİSKLİ 20 ÇİFT — Bileşik Skor (Orbital × Malzeme)
+───────────────────────────────────────────────────────────────────────────
+  UYDU           ÇÖP                         t24(km)   ORB   MAL  BILESIK  R/B
+  ───────────────────────────────────────────────────────────────────────────
+  GOKTURK 1A     ORBCOMM FM32                  4,985  0.80  0.95   0.7600 R/B ↑
+  GOKTURK 1A     IRIDIUM 33 DEB                3,427  0.80  0.60   0.4800     ↑
+  GOKTURK 1A     IRIDIUM 33 DEB                3,603  0.80  0.60   0.4800     ↑
+  GOKTURK 1A     IRIDIUM 33 DEB                3,647  0.80  0.60   0.4800     ↑
+  GOKTURK 2      IRIDIUM 33 DEB                3,827  0.80  0.60   0.4800     ↑
+  GOKTURK 2      IRIDIUM 33 DEB                4,038  0.80  0.60   0.4800     ↑
+  IMECE          IRIDIUM 33 DEB                4,096  0.80  0.60   0.4800     ↓
+  GOKTURK 2      IRIDIUM 33 DEB                4,209  0.80  0.60   0.4800     ↑
+  IMECE          IRIDIUM 33 DEB                4,435  0.80  0.60   0.4800     ↑
+  GOKTURK 2      IRIDIUM 33 DEB                4,807  0.80  0.60   0.4800     ↑
+  IMECE          IRIDIUM 33 DEB                4,833  0.80  0.60   0.4800     ↓
+  GOKTURK 2      IRIDIUM 33 DEB                4,838  0.80  0.60   0.4800     ↑
+  GOKTURK 1A     IRIDIUM 33 DEB                4,900  0.80  0.60   0.4800     ↑
+  IMECE          COSMOS 2251 DEB               3,268  0.80  0.50   0.4000     ↓
+  GOKTURK 2      COSMOS 2251 DEB               3,808  0.80  0.50   0.4000     ↑
+  IMECE          COSMOS 2251 DEB               4,215  0.80  0.50   0.4000     ↓
+  GOKTURK 1A     COSMOS 2251 DEB               4,223  0.80  0.50   0.4000     ↑
+  IMECE          COSMOS 2251 DEB               4,272  0.80  0.50   0.4000     ↑
+  GOKTURK 2      COSMOS 2251 DEB               4,283  0.80  0.50   0.4000     ↓
+  IMECE          COSMOS 2251 DEB               4,323  0.80  0.50   0.4000     ↓
+
+✅ Simülasyon JSON → C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output\risk_tahmin_simul.json
+
+─────────────────────────────────────────────────────────────────
+Model bilgisi: test RMSE=2336.87 km | R²=0.981028 | CV RMSE=2362.43 ± 18.15 km
+
+=================================================================
+TAMAMLANDI.
+  📁 C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel\data\output
+
+╔══════════════════════════════════════════════════════╗
+║   🛰️  Space Debris Tracking Model                   ║
+║   Türk Uyduları × 17,414 Uzay Çöpü — 24h Tahmin    ║
+╚══════════════════════════════════════════════════════╝
+
+Zaman: 2026-03-28 18:18 UTC
+Proje: C:\Users\samet\OneDrive\Belgeler\GitHub\SpaceDebrisTrackingModel
+
+─── Risk Tahmini ─────────────────────────────────────────
+
+✅ Risk Tahmini: 8.5s
+
+─── PIPELINE DURUMU ──────────────────────────────────────
+  ✅ Çöp TLE verisi (kaynak)         (4.6 MB)
+  ✅ Türk uyduları (kaynak)          (2 KB)
+  ✅ Enriched CSV                    (2.7 MB)
+  ✅ Temizlenmiş CSV                 (2.8 MB)
+  ✅ Karşılaşma tablosu (t0+t24+TCA)  (34.3 MB)
+  ✅ Feature matrisi                 (50.7 MB)
+  ✅ LightGBM model                  (2.7 MB)
+  ✅ Model raporu                    (2 KB)
+  ✅ Risk tahmin — tüm çiftler       (37.1 MB)
+  ✅ Risk tahmin — kritik çiftler    (539 KB)
+  ✅ Risk JSON (simülasyon)          (1.2 MB)
+  ✅ TCA doğrulama                   (3 KB)
+  ✅ Görselleştirme grafikleri      (5 PNG)
+
+─── MODEL METRİKLERİ ─────────────────────────────────────
+  Metrik                      Naive     LightGBM
+  ----------------------------------------------
+  RMSE (km)                 5890.47      2336.87
+  R²                       0.879457     0.981028
+  CV RMSE (km)                      2362.43 ±18.15
+
+─── GÜNCEL RİSK ÖZETİ ────────────────────────────────────
+  Hesap zamanı : 2026-03-28T18:18:37 UTC
+  Toplam çift  : 156,726
+  KRITIK         0 (  0.0%)  
+  YUKSEK     2,259 (  1.4%)  
+  ORTA      48,075 ( 30.7%)  █████████
+  DUSUK    106,392 ( 67.9%)  ████████████████████
+
+─── UYDU BAZLI EN YAKIN ÇÖPLER ───────────────────────────
+  UYDU              KRİTİK  YÜKSEK   EN YAKIN  CİSİM
+  ----------------------------------------------------------------------
+  GOKTURK 2              0    1007    1462.1km  ← STARLINK-34016
+  TURKSAT 3A             0      24    1515.3km  ← TURKSAT 5B
+  TURKSAT 4A             0      24    1515.3km  ← TURKSAT 5B
+  TURKSAT 5B             0      24    1515.3km  ← TURKSAT 5B
+  TURKSAT 6A             0      24    1515.3km  ← TURKSAT 5B
+  TURKSAT 5A             0      22    1699.5km  ← ARABSAT-5A
+  TURKSAT 4B             0      24    1702.1km  ← YAMAL 601
+  IMECE                  0     762    2172.8km  ← STARLINK-5039
+  GOKTURK 1A             0     348    2867.3km  ← GOKTURK 1A

@@ -1,0 +1,92 @@
+{
+  "n_original": 17416,
+  "steps": [
+    {
+      "name": "angular_wrap",
+      "fixes": {}
+    },
+    {
+      "name": "physical_bounds",
+      "dropped": 0,
+      "details": {
+        "eccentricity_out_of_range": 0,
+        "inclination_out_of_range": 0,
+        "sma_below_earth": 0,
+        "negative_perigee": 0,
+        "period_too_short": 0
+      }
+    },
+    {
+      "name": "bstar_clip",
+      "n_negative": 2628,
+      "n_clipped": 155
+    },
+    {
+      "name": "outlier_flagging",
+      "counts": {
+        "eccentricity": 2571,
+        "semi_major_axis_km": 914,
+        "perigee_alt_km": 1495,
+        "apogee_alt_km": 846,
+        "bstar_drag": 695,
+        "mean_motion_rev_day": 874,
+        "period_hours": 917
+      },
+      "total_flagged": 4544
+    },
+    {
+      "name": "statistical_tests",
+      "results": {
+        "inclination_deg": {
+          "shapiro_W": 0.8672,
+          "shapiro_p": 4.264679652855665e-54,
+          "skewness": -0.0656,
+          "kurtosis": -0.5443,
+          "is_normal": "False"
+        },
+        "eccentricity": {
+          "shapiro_W": 0.0628,
+          "shapiro_p": 2.5345149471840546e-94,
+          "skewness": 21.1116,
+          "kurtosis": 471.4698,
+          "is_normal": "False"
+        },
+        "semi_major_axis_km": {
+          "shapiro_W": 0.23,
+          "shapiro_p": 9.162141565510595e-90,
+          "skewness": 4.9378,
+          "kurtosis": 25.8501,
+          "is_normal": "False"
+        },
+        "perigee_alt_km": {
+          "shapiro_W": 0.2237,
+          "shapiro_p": 5.977948369419148e-90,
+          "skewness": 4.7288,
+          "kurtosis": 20.7833,
+          "is_normal": "False"
+        },
+        "apogee_alt_km": {
+          "shapiro_W": 0.2141,
+          "shapiro_p": 3.122778682949737e-90,
+          "skewness": 7.19,
+          "kurtosis": 91.2086,
+          "is_normal": "False"
+        },
+        "bstar_drag": {
+          "shapiro_W": 0.2067,
+          "shapiro_p": 1.898099525339324e-90,
+          "skewness": 40.0062,
+          "kurtosis": 2897.8835,
+          "is_normal": "False"
+        }
+      }
+    },
+    {
+      "name": "nan_cleanup",
+      "nan_cells": 0,
+      "rows_dropped": 0
+    }
+  ],
+  "n_final": 17416,
+  "n_total_dropped": 0
+}

@@ -1,0 +1,47 @@
+{
+  "n_train": 125388,
+  "n_test": 31347,
+  "n_features": 19,
+  "feature_columns": [
+    "mesafe_km",
+    "bagil_hiz_km_s",
+    "cop_inclination_deg",
+    "cop_eccentricity",
+    "cop_perigee_alt_km",
+    "cop_apogee_alt_km",
+    "cop_bstar_drag",
+    "cop_semi_major_axis_km",
+    "cop_period_hours",
+    "cop_raan_deg",
+    "cop_arg_perigee_deg",
+    "cop_mean_anomaly_deg",
+    "inclination_diff_deg",
+    "perigee_diff_km",
+    "regime_GEO",
+    "regime_HEO",
+    "regime_LEO",
+    "regime_MEO",
+    "regime_OTHER"
+  ],
+  "models": {
+    "logistic_regression": {
+      "accuracy": 0.9583,
+      "f1_macro": 0.8984,
+      "cv_accuracy": "0.9586 ± 0.0011",
+      "cv_f1_macro": "0.8987 ± 0.0026"
+    },
+    "lightgbm": {
+      "accuracy": 0.9968,
+      "f1_macro": 0.9937,
+      "cv_accuracy": "0.9967 ± 0.0004",
+      "cv_f1_macro": "0.9931 ± 0.0006"
+    },
+    "xgboost": {
+      "accuracy": 0.9991,
+      "f1_macro": 0.9985,
+      "cv_accuracy": "0.9987 ± 0.0002",
+      "cv_f1_macro": "0.9958 ± 0.0006"
+    }
+  },
+  "best_model": "xgboost"
+}
