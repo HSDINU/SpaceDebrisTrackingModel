@@ -196,31 +196,49 @@ if not uydu_listesi:
     ]
 
 
-# ── Gerçek tehdit listesi (HUD için) ──────────────────────────
-kritik_ciftler = simul.get("kritik_ciftler", []) if DATA_READY else []
+# ── Gerçek tehdit listesi: CSV'den (hiz_t0_km_s dahil) ────────
+# JSON kritik_ciftler'da hiz_t0_km_s alanı yok; doğru kaynak CSV'dir.
+tehdit_listesi: list[dict] = []
 
+if kritik_df is not None and not kritik_df.empty:
+    # Anlamsız öz-eşleşmeleri ve hareketsiz çiftleri filtrele
+    _turk_adlari = set(NORAD_IDS.keys())
+    _filtered = kritik_df[
+        (kritik_df["hiz_t0_km_s"] > 0.05) &                     # gerçek göreli hız
+        (~kritik_df["cop_parca"].isin(_turk_adlari)) &            # Türk uydusu değil
+        (kritik_df["turk_uydu"] != kritik_df["cop_parca"])        # kendi kendine değil
+    ].copy()
 
-def _build_threat(item: dict) -> dict:
-    score_raw = item.get("bilesik_risk_skoru", 0)
-    return {
-        "hedef_uydu":        item.get("turk_uydu", item.get("hedef_uydu", "")),
-        "yaklasan_cop":      item.get("cop_parca", item.get("yaklasan_cop", "")),
-        "minimum_mesafe_km": round(item.get("tahmin_t24_km",  item.get("mesafe_t0_km", 0)), 2),
-        "mesafe_t0_km":      round(item.get("mesafe_t0_km", 0), 2),
-        "bagil_hiz_km_s":    round(item.get("hiz_t0_km_s",  0), 3),
-        "tehlike_skoru":     round(score_raw * 100, 1),
-        "risk_seviyesi":     item.get("risk_sinifi", "DUSUK"),
-        "risk_zamani":       item.get("trend", ""),
-        "malzeme":           item.get("malzeme", "Bilinmiyor"),
-        "yanma_orani":       item.get("yanma_orani", "N/A"),
-        "yere_dusme_riski":  item.get("yere_dusme_riski", 0),
-        "orbital_risk":      item.get("orbital_risk_skoru", 0),
-        "egim":              round(item.get("cop_inclination_deg", 0), 2),
-        "eksantrisite":      item.get("cop_eccentricity", 0),
-    }
-
-
-tehdit_listesi = [_build_threat(x) for x in kritik_ciftler[:30]]
+    # Her uydu için en yakın 3 tehdit (çeşitlilik için groupby)
+    top_per_sat = (
+        _filtered
+        .sort_values("tahmin_t24_km", ascending=True)
+        .groupby("turk_uydu", group_keys=False)
+        .head(3)
+        .sort_values("tahmin_t24_km", ascending=True)
+        .head(30)
+    )
+    for _, row in top_per_sat.iterrows():
+        score_raw = float(row.get("bilesik_risk_skoru", 0))
+        malzeme   = str(row.get("malzeme", "Bilinmiyor"))
+        tehdit_listesi.append({
+            "hedef_uydu":        str(row.get("turk_uydu",          "")),
+            "yaklasan_cop":      str(row.get("cop_parca",           "")),
+            "minimum_mesafe_km": round(float(row.get("tahmin_t24_km",         0)), 1),
+            "mesafe_t0_km":      round(float(row.get("mesafe_t0_km",          0)), 1),
+            "bagil_hiz_km_s":    round(float(row.get("hiz_t0_km_s",          0)), 3),
+            "hiz_t24_km_s":      round(float(row.get("hiz_t24_km_s",         0)), 3),
+            "delta_mesafe_km":   round(float(row.get("delta_mesafe_km",       0)), 1),
+            "tehlike_skoru":     round(score_raw * 100, 1),
+            "risk_seviyesi":     str(row.get("risk_sinifi",         "DUSUK")),
+            "risk_zamani":       str(row.get("trend",               "")),
+            "malzeme":           malzeme[:55] + "..." if len(malzeme) > 55 else malzeme,
+            "yanma_orani":       str(row.get("yanma_orani",         "N/A")),
+            "yere_dusme_riski":  round(float(row.get("yere_dusme_riski",      0)), 2),
+            "orbital_risk":      round(float(row.get("orbital_risk_skoru",    0)), 2),
+            "egim":              round(float(row.get("cop_inclination_deg",   0)), 2),
+            "eksantrisite":      round(float(row.get("cop_eccentricity",      0)), 5),
+        })
 
 
 # ── 3D Debris nesneleri (kritik.csv'den top-150 benzersiz cisim) ─
@@ -870,20 +888,30 @@ html_template = """
             if (critPanel && realThreatsData.length > 0) {
                 let critHtml = '';
                 realThreatsData.slice(0, 8).forEach(t => {
-                    const lvlColor = t.risk_seviyesi === 'KRITIK' ? '#ff0000' : '#ff6600';
-                    const trend = t.risk_zamani || '';
-                    critHtml += '<div class="bg-red-500/5 border-l-2 border-red-500 p-2 mb-1">'
-                        + '<div class="text-[10px] font-bold text-white">'
-                        + t.hedef_uydu + ' ↔ ' + (t.yaklasan_cop || '?') + '</div>'
-                        + '<div class="text-[9px] text-neutral-400">'
-                        + 'T₀: ' + parseFloat(t.mesafe_t0_km || 0).toFixed(0) + ' km'
-                        + ' → 24h: ' + parseFloat(t.minimum_mesafe_km || 0).toFixed(0) + ' km'
-                        + ' [' + trend + ']'
+                    const lvl      = t.risk_seviyesi || 'YUKSEK';
+                    const lvlColor = lvl === 'KRITIK' ? '#ff0000' : lvl === 'YUKSEK' ? '#ff6600' : '#ffaa00';
+                    const trend    = t.risk_zamani || '';
+                    const trendIcon= trend === 'YAKLASYOR' ? '▼ YAKLASYOR' : trend === 'UZAKLASYOR' ? '▲ UZAKLASYOR' : trend;
+                    const hiz      = parseFloat(t.bagil_hiz_km_s || 0);
+                    const d0       = parseFloat(t.mesafe_t0_km    || 0);
+                    const d24      = parseFloat(t.minimum_mesafe_km || 0);
+                    const skor     = parseFloat(t.tehlike_skoru   || 0);
+                    const delta    = parseFloat(t.delta_mesafe_km || (d24 - d0));
+                    critHtml +=
+                        '<div class="border-l-2 p-2 mb-1" style="background:rgba(255,100,0,0.05);border-color:' + lvlColor + '">'
+                        + '<div class="text-[10px] font-bold text-white leading-tight">'
+                        +   t.hedef_uydu + ' ↔ ' + (t.yaklasan_cop || '?')
                         + '</div>'
-                        + '<div class="text-[9px]" style="color:' + lvlColor + '">'
-                        + 'Skor: ' + parseFloat(t.tehlike_skoru || 0).toFixed(1) + '/100'
-                        + ' | Hız: ' + parseFloat(t.bagil_hiz_km_s || 0).toFixed(2) + ' km/s'
-                        + '</div></div>';
+                        + '<div class="text-[9px] text-neutral-400 mt-0.5">'
+                        +   'T₀: ' + d0.toFixed(0) + ' km → 24h: '
+                        +   '<span style="color:' + lvlColor + ';font-weight:bold">' + d24.toFixed(0) + ' km</span>'
+                        +   ' <span class="text-[8px]">[' + trendIcon + ']</span>'
+                        + '</div>'
+                        + '<div class="text-[9px] mt-0.5 flex gap-3">'
+                        +   '<span style="color:' + lvlColor + '">Skor: ' + skor.toFixed(1) + '/100</span>'
+                        +   '<span class="text-neutral-400">Hız: <span class="text-white">' + hiz.toFixed(2) + ' km/s</span></span>'
+                        + '</div>'
+                        + '</div>';
                 });
                 critPanel.innerHTML = critHtml;
             }
