@@ -256,6 +256,73 @@ Tahmin edilen 24h mesafeye göre her (uydu, çöp) çifti aşağıdaki sınıfla
 
 ---
 
+## Dashboard
+
+Streamlit tabanlı gerçek zamanlı görselleştirme arayüzü:
+
+```bash
+streamlit run app.py
+```
+
+Tarayıcıda `http://localhost:8501` adresine gidin.
+
+**Arayüz özellikleri:**
+- 3D WebGL küre üzerinde Türk uyduları ve gerçek debris nesneleri
+- Sol sidebar: model metrikleri, risk özeti, uydu bazlı tehdit tablosu
+- HUD panelleri: ML pipeline'dan gelen YÜKSEK/KRİTİK tehdit kartları
+- Uydu/debris tıklama: orbital parametreler, malzeme, risk skoru
+- Canlı log akışı: pipeline mesajları
+
+---
+
+## Docker ile Deployment
+
+### Gereksinimler
+- Docker >= 24.0
+- Docker Compose >= 2.0
+
+### Hızlı Başlangıç
+
+```bash
+# 1. Önce ML pipeline'ı çalıştırın (data/ klasörü oluşur)
+python main.py --all
+
+# 2. Docker image oluşturun
+docker build -t celestial-sentinel .
+
+# 3. Çalıştırın (data/ volume ile bağlanır)
+docker run -p 8501:8501 \
+  -v $(pwd)/data:/app/data:ro \
+  -v $(pwd)/lightgbm_risk_modeli.pkl:/app/lightgbm_risk_modeli.pkl:ro \
+  celestial-sentinel
+```
+
+### Docker Compose (önerilen)
+
+```bash
+# Dashboard'u başlat
+docker compose up -d
+
+# Pipeline'ı container içinde çalıştır
+docker compose run --rm pipeline
+
+# Logları izle
+docker compose logs -f celestial-sentinel
+```
+
+### Cloud Deployment
+
+| Platform | Komut |
+|---|---|
+| **Google Cloud Run** | `gcloud run deploy celestial-sentinel --source . --port 8501` |
+| **AWS App Runner** | `aws apprunner create-service --source-configuration ...` |
+| **Azure Container Apps** | `az containerapp up --source . --ingress external --target-port 8501` |
+| **Streamlit Community Cloud** | GitHub repo bağlantısı, `app.py` seç |
+
+> **Not:** Cloud deployment'ta `data/` klasörünü kalıcı depolama (Cloud Storage, EFS, Azure Blob) ile mount edin veya pipeline çıktılarını image'a gömin.
+
+---
+
 ## Lisans
 
 Bu proje araştırma amaçlı geliştirilmiştir.

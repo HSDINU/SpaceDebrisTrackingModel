@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+
+# Python önbelleği
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Sanal ortamlar
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.cursor/
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Geliştirme araçları ve arşiv
+_archive/
+notebooks/
+*.ipynb
+
+# Büyük ham veri dosyaları (pipeline ile üretilir; image'a dahil etme)
+# data/ klasörünü volume ile mount et:
+#   docker run -v $(pwd)/data:/app/data celestial-sentinel
+# Eğer image içinde veri isteniyorsa aşağıdaki satırı yorum yapın:
+# data/
+
+# Geçici dosyalar
+*.tmp
+*.log
+*.bak
+.DS_Store
+Thumbs.db
+
+# Çevre değişkenleri (hassas)
+.env
+.env.*
+secrets.json
