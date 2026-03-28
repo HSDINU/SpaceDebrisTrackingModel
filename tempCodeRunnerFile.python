@@ -1,0 +1,70 @@
+import json
+
+# Türk uydularının NORAD ID listesi
+TURK_UYDULARI_IDS = [
+    "56232",  # İMECE
+    "41875",  # Göktürk-1
+    "39030",  # Göktürk-2
+    "33055",  # Türksat 3A
+    "39522",  # Türksat 4A
+    "40967",  # Türksat 4B
+    "47306",  # Türksat 5A
+    "50465",  # Türksat 5B
+    "60233",  # Türksat 6A
+    "37789"   # RASAT
+]
+
+def parse_tle_file(file_path):
+    hedef_uydular = []
+    diger_uydular = []
+
+    # Dosyayı satır satır oku, boş satırları temizle
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = [line.strip() for line in f.readlines() if line.strip()]
+
+    # TLE verisi 3 satır bloklar halindedir
+    for i in range(0, len(lines), 3):
+        if i + 2 >= len(lines):
+            break  # Eksik veya hatalı son bloğu atla
+
+        name = lines[i]
+        line1 = lines[i+1]
+        line2 = lines[i+2]
+
+        # NORAD ID, 2. satırın 2. ile 7. karakterleri arasındadır
+        try:
+            norad_id = line2[2:7].strip()
+        except IndexError:
+            continue
+
+        uydu_objesi = {
+            "norad_id": norad_id,
+            "name": name,
+            "tle_line1": line1,
+            "tle_line2": line2
+        }
+
+        # ID kontrolü ile filtreleme
+        if norad_id in TURK_UYDULARI_IDS:
+            hedef_uydular.append(uydu_objesi)
+        else:
+            diger_uydular.append(uydu_objesi)
+
+    return hedef_uydular, diger_uydular
+
+# Dosya adını buraya girin (Örn: notlara kaydettiğin txt dosyası)
+input_file = "aktif_uydular.txt"
+
+hedef_uydular, diger_uydular = parse_tle_file(input_file)
+
+print(f"Bulunan Hedef Uydu Sayısı: {len(hedef_uydular)}")
+print(f"Diğer Uydu/Nesne Sayısı: {len(diger_uydular)}")
+
+# Çıktıları JSON formatında kaydet
+with open("turk_uydulari.json", "w", encoding="utf-8") as f:
+    json.dump(hedef_uydular, f, ensure_ascii=False, indent=4)
+
+with open("diger_uydular.json", "w", encoding="utf-8") as f:
+    json.dump(diger_uydular, f, ensure_ascii=False, indent=4)
+
+print("Ayrıştırma tamamlandı. Veriler JSON olarak kaydedildi.")
