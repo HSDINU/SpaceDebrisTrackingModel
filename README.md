@@ -288,13 +288,13 @@ Tarayıcıda `http://localhost:8501` adresine gidin.
 python main.py --all
 
 # 2. Docker image oluşturun
-docker build -t celestial-sentinel .
+docker build -t yorunge-muhafizi .
 
 # 3. Çalıştırın (data/ volume ile bağlanır)
 docker run -p 8501:8501 \
   -v $(pwd)/data:/app/data:ro \
   -v $(pwd)/lightgbm_risk_modeli.pkl:/app/lightgbm_risk_modeli.pkl:ro \
-  celestial-sentinel
+  yorunge-muhafizi
 ```
 
 ### Docker Compose (önerilen)
@@ -307,14 +307,14 @@ docker compose up -d
 docker compose run --rm pipeline
 
 # Logları izle
-docker compose logs -f celestial-sentinel
+docker compose logs -f yorunge-muhafizi
 ```
 
 ### Cloud Deployment
 
 | Platform | Komut |
 |---|---|
-| **Google Cloud Run** | `gcloud run deploy celestial-sentinel --source . --port 8501` |
+| **Google Cloud Run** | `gcloud run deploy yorunge-muhafizi --source . --port 8501` |
 | **AWS App Runner** | `aws apprunner create-service --source-configuration ...` |
 | **Azure Container Apps** | `az containerapp up --source . --ingress external --target-port 8501` |
 | **Streamlit Community Cloud** | GitHub repo bağlantısı, `app.py` seç |

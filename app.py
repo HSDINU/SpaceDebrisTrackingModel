@@ -1,5 +1,5 @@
 """
-CELESTIAL SENTINEL — Space Debris Tracking Dashboard
+YÖRÜNGE MUHAFIZI — Space Debris Tracking Dashboard
 ======================================================
 Gerçek pipeline çıktılarını (risk_tahmin_simul.json, risk_tahmin_kritik.csv,
 ml_step03_report.json) okuyarak dinamik 3D görselleştirme sunar.
@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 # ── Sayfa yapılandırması ───────────────────────────────────────
-st.set_page_config(layout="wide", page_title="CELESTIAL SENTINEL")
+st.set_page_config(layout="wide", page_title="YÖRÜNGE MUHAFIZI")
 
 # ── Sabit eşlemeler ────────────────────────────────────────────
 NORAD_IDS = {
@@ -112,7 +112,7 @@ DATA_READY = simul is not None
 
 # ── Sidebar ────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🛰️ CELESTIAL SENTINEL")
+    st.markdown("## 🛰️ YÖRÜNGE MUHAFIZI")
     st.caption("Space Debris Risk Monitor — LightGBM 24h Pipeline")
 
     if st.button("🔄 Verileri Yenile", use_container_width=True):
@@ -473,7 +473,7 @@ html_template = """
 <html class="dark" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>CELESTIAL SENTINEL | ORBITAL ANALYSIS</title>
+<title>YÖRÜNGE MUHAFIZI | YÖRÜNGE ANALİZİ</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -568,6 +568,33 @@ html_template = """
             animation: rotate 4s linear infinite;
         }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ── Mobil Uyumluluk ──────────────────────────────────────── */
+        @media (max-width: 767px) {
+            #left-sidebar  { display: none !important; }
+            #main-content  { padding-left: 0.5rem !important; padding-right: 0.5rem !important; padding-top: 4rem !important; }
+            #left-panel    { display: none; position: fixed; left: 0; top: 56px; bottom: 0; z-index: 100;
+                             width: 280px; overflow-y: auto; flex-direction: column; gap: 0.75rem; padding: 0.75rem;
+                             background: rgba(10,10,10,0.97); backdrop-filter: blur(20px);
+                             border-right: 1px solid rgba(0,220,230,0.2); transition: transform 0.3s ease; }
+            #left-panel.mobile-open { display: flex !important; }
+            #bottom-status-bar { overflow-x: auto; gap: 0.75rem !important; padding: 0.4rem 0.75rem !important; font-size: 0.6rem; }
+            #bottom-status-bar .h-6 { display: none; }
+            #mobile-menu-btn   { display: flex !important; }
+            #selection-panel   { width: calc(100vw - 2rem) !important; right: 1rem !important; left: 1rem !important; }
+            #settings-modal > div { width: 95vw !important; }
+            .w-64 { width: 90vw !important; max-width: 340px; }
+            #radar-windows { flex-wrap: wrap; justify-content: center; }
+            #conjunction-count { font-size: 0.55rem !important; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        }
+        @media (min-width: 768px) {
+            #mobile-menu-btn { display: none !important; }
+            #left-panel      { display: flex !important; }
+        }
+        /* Mobil dokunma alanları */
+        @media (max-width: 767px) {
+            button, .hud-interactive { min-height: 36px; }
+        }
     </style>
 </head>
 <body class="bg-background text-on-background">
@@ -575,22 +602,25 @@ html_template = """
 <div class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-8 py-2 animate-alarm border-y border-white/20" id="multi-collision-alert">
 <span class="text-white font-black text-xs tracking-[0.3em] uppercase flex items-center gap-4">
 <span class="material-symbols-outlined text-sm">warning</span>
-            MULTI-TARGET COLLISION WARNING: EXTREME PROXIMITY DETECTED
+            ÇOK HEDEFLİ ÇARPIŞMA UYARISI: AŞIRI YAKLAŞMA TESPİT EDİLDİ
             <span class="material-symbols-outlined text-sm">warning</span>
 </span>
 </div>
-<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-3 bg-neutral-950/40 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_0_15px_rgba(0,220,230,0.1)]">
-<div class="flex items-center gap-4">
-<span class="text-xl font-black tracking-tighter text-cyan-400 drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]">CELESTIAL SENTINEL</span>
-<div class="h-4 w-[1px] bg-cyan-500/30"></div>
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-3 md:px-6 py-2 md:py-3 bg-neutral-950/40 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_0_15px_rgba(0,220,230,0.1)]">
+<div class="flex items-center gap-2 md:gap-4">
+<button id="mobile-menu-btn" class="hud-interactive p-2 text-cyan-400 hover:bg-cyan-500/10 transition-all" onclick="toggleMobilePanel()" title="Paneli Aç/Kapat" style="display:none">
+<span class="material-symbols-outlined text-lg">menu</span>
+</button>
+<span class="text-base md:text-xl font-black tracking-tighter text-cyan-400 drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]">YÖRÜNGE MUHAFIZI</span>
+<div class="h-4 w-[1px] bg-cyan-500/30 hidden md:block"></div>
 <nav class="hidden md:flex gap-6">
-<a class="font-['Space_Grotesk'] uppercase tracking-tight text-xs font-bold text-cyan-300 border-b-2 border-cyan-400 pb-1 transition-all duration-300" href="#">ORBITAL ANALYSIS</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-tight text-xs font-bold text-cyan-300 border-b-2 border-cyan-400 pb-1 transition-all duration-300" href="#">YÖRÜNGE ANALİZİ</a>
 </nav>
 </div>
 <div class="flex items-center gap-4">
 <div class="flex items-center gap-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30">
 <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-<span class="text-[10px] font-bold text-cyan-400 font-mono" id="conjunction-count">SCANNING...</span>
+<span class="text-[10px] font-bold text-cyan-400 font-mono" id="conjunction-count">TARANYOR...</span>
 </div>
 <button class="hud-interactive p-2 hover:bg-cyan-500/10 transition-all duration-300 text-cyan-400" onclick="triggerScan()" title="Yeni Tarama Başlat">
 <span class="material-symbols-outlined">sensors</span>
@@ -600,19 +630,15 @@ html_template = """
 </button>
 </div>
 </header>
-<aside class="fixed left-0 top-0 h-full flex flex-col items-center py-8 z-40 bg-neutral-950/60 backdrop-blur-2xl w-20 border-r border-cyan-500/15 pt-20">
+<aside id="left-sidebar" class="fixed left-0 top-0 h-full flex flex-col items-center py-8 z-40 bg-neutral-950/60 backdrop-blur-2xl w-20 border-r border-cyan-500/15 pt-20">
 <div class="flex flex-col items-center mb-8 text-center px-1">
 <span class="text-cyan-400 font-bold font-['Space_Grotesk'] text-[10px]">SENTINEL-01</span>
-<span class="text-neutral-500 font-['Space_Grotesk'] text-[8px] uppercase">ANALYSIS ENGINE: ACTIVE</span>
+<span class="text-neutral-500 font-['Space_Grotesk'] text-[8px] uppercase">ANALİZ MOTORU: AKTİF</span>
 </div>
 <div class="flex flex-col gap-6 w-full px-2">
 <button class="hud-interactive group flex flex-col items-center gap-1 py-3 bg-cyan-500/20 text-cyan-300 border-r-4 border-cyan-400">
 <span class="material-symbols-outlined">radar</span>
-<span class="font-['Space_Grotesk'] font-medium uppercase text-[10px]">THREATS</span>
-</button>
-<button class="hud-interactive group flex flex-col items-center gap-1 py-3 text-neutral-500 hover:text-cyan-300 transition-colors">
-<span class="material-symbols-outlined">public</span>
-<span class="font-['Space_Grotesk'] font-medium uppercase text-[10px]">ASSETS</span>
+<span class="font-['Space_Grotesk'] font-medium uppercase text-[10px]">TEHDİTLER</span>
 </button>
 </div>
 <div class="mt-auto flex flex-col items-center gap-4 pb-4">
@@ -621,15 +647,15 @@ html_template = """
 <span class="font-['Space_Grotesk'] font-medium uppercase text-[10px]" id="utc-clock">UTC</span>
 </div>
 <button class="hud-interactive bg-error-container text-on-error-container text-[8px] font-black px-2 py-1 leading-tight text-center" id="emergency-btn" onclick="emergencyOverride()" title="Acil: YÜKSEK tehditleri öne çıkar">
-                EMERGENCY OVERRIDE
+                ACİL MÜDAHALE
             </button>
 </div>
 </aside>
-<main class="hud-overlay fixed inset-0 z-30 flex flex-col p-6 pl-24 pt-20">
-<div class="flex flex-col gap-4 w-72 h-full">
+<main id="main-content" class="hud-overlay fixed inset-0 z-30 flex flex-col p-6 pl-24 pt-20">
+<div id="left-panel" class="flex flex-col gap-4 w-72 h-full">
 <section class="hud-interactive glass-panel bg-surface-container-low/60 border-l-2 border-cyan-400 p-4">
 <div class="flex justify-between items-center mb-3">
-<h2 class="text-xs font-black uppercase tracking-widest text-primary-fixed">SENTINEL_LOG</h2>
+<h2 class="text-xs font-black uppercase tracking-widest text-primary-fixed">SİSTEM_KAYDI</h2>
 <span class="text-[10px] text-tertiary-fixed font-mono" id="log-model-tag">LightGBM</span>
 </div>
 <div class="space-y-2 max-h-48 overflow-y-auto pr-2" id="log-container">
@@ -642,7 +668,7 @@ html_template = """
 <section class="hud-interactive glass-panel bg-surface-container-low/60 border-l-2 border-error-container p-4">
 <h2 class="text-xs font-black uppercase tracking-widest text-error mb-3 flex items-center gap-2">
 <span class="material-symbols-outlined text-sm">warning</span>
-                    CRITICAL SECTOR
+                    KRİTİK SEKTÖR
                 </h2>
 <div class="space-y-3" id="critical-threats-list">
 <div class="text-[9px] text-neutral-500 italic">Tehdit verisi yükleniyor...</div>
@@ -651,10 +677,10 @@ html_template = """
 </div>
 <div class="mt-auto mb-4 self-center flex flex-col items-center gap-4">
 <div class="flex gap-4" id="radar-windows"></div>
-<div class="hud-interactive glass-panel bg-surface-container-low/80 border border-cyan-500/20 px-6 py-2 flex items-center gap-6">
+<div id="bottom-status-bar" class="hud-interactive glass-panel bg-surface-container-low/80 border border-cyan-500/20 px-6 py-2 flex items-center gap-6">
 <div class="flex flex-col items-center">
-    <span class="text-[8px] uppercase text-neutral-500">Camera</span>
-    <span class="text-[10px] font-bold text-cyan-400 uppercase">WASD + MOUSE</span>
+    <span class="text-[8px] uppercase text-neutral-500">Kamera</span>
+    <span class="text-[10px] font-bold text-cyan-400 uppercase">WASD + FARE</span>
 </div>
 <div class="h-6 w-[1px] bg-outline-variant"></div>
 <div class="flex flex-col items-center">
@@ -668,7 +694,7 @@ html_template = """
 </div>
 <div class="h-6 w-[1px] bg-outline-variant"></div>
 <div class="flex flex-col items-center">
-    <span class="text-[8px] uppercase text-neutral-500">Engine FPS</span>
+    <span class="text-[8px] uppercase text-neutral-500">Motor FPS</span>
     <span class="text-[10px] font-bold text-cyan-400" id="fps-display">60 FPS</span>
 </div>
 </div>
@@ -676,8 +702,8 @@ html_template = """
 <div class="hidden hud-interactive fixed right-6 top-24 w-80 glass-panel bg-neutral-950/90 neon-border p-5 animate-flicker z-50" id="selection-panel">
 <div class="flex justify-between items-start mb-4 border-b border-cyan-500/30 pb-3">
 <div>
-<h3 class="text-lg font-black tracking-widest text-cyan-400 leading-none uppercase" id="panel-title">OBJECT_ID</h3>
-<p class="text-[9px] font-mono text-cyan-300/60 mt-2 uppercase tracking-tighter" id="panel-type-tag">CLASSIFICATION: UNKNOWN</p>
+<h3 class="text-lg font-black tracking-widest text-cyan-400 leading-none uppercase" id="panel-title">NESNE_KİMLİĞİ</h3>
+<p class="text-[9px] font-mono text-cyan-300/60 mt-2 uppercase tracking-tighter" id="panel-type-tag">SINIFLANDIRMA: BİLİNMİYOR</p>
 </div>
 <button class="text-cyan-400 hover:text-white transition-colors" onclick="document.getElementById('selection-panel').classList.add('hidden')">
 <span class="material-symbols-outlined text-xl">close</span>
@@ -685,8 +711,8 @@ html_template = """
 </div>
 <div class="space-y-4" id="panel-content-area"></div>
 <div class="mt-6 flex gap-2">
-<button class="flex-1 bg-cyan-500/20 border border-cyan-400/50 text-cyan-400 text-[10px] font-black py-2 uppercase hover:bg-cyan-400 hover:text-black transition-all">Track Vector</button>
-<button class="flex-1 border border-outline-variant text-neutral-400 text-[10px] font-black py-2 uppercase hover:bg-white/10 transition-all">Full Telemetry</button>
+<button class="flex-1 bg-cyan-500/20 border border-cyan-400/50 text-cyan-400 text-[10px] font-black py-2 uppercase hover:bg-cyan-400 hover:text-black transition-all">Vektörü İzle</button>
+<button class="flex-1 border border-outline-variant text-neutral-400 text-[10px] font-black py-2 uppercase hover:bg-white/10 transition-all">Tam Telemetri</button>
 </div>
 </div>
 </main>
@@ -696,7 +722,7 @@ html_template = """
   <div class="bg-neutral-950 border border-cyan-500/40 p-6 w-96 max-w-[90vw]" style="box-shadow:0 0 30px rgba(0,220,230,0.15)">
     <div class="flex justify-between items-center mb-5 border-b border-cyan-500/20 pb-3">
       <h3 class="text-cyan-400 font-black text-[11px] uppercase tracking-[0.3em] flex items-center gap-2">
-        <span class="material-symbols-outlined text-sm">settings</span>SYSTEM SETTINGS
+        <span class="material-symbols-outlined text-sm">settings</span>SİSTEM AYARLARI
       </h3>
       <button onclick="closeSettings()" class="text-neutral-400 hover:text-white transition-colors">
         <span class="material-symbols-outlined">close</span>
@@ -902,10 +928,30 @@ html_template = """
             orbitRingObjects = [];
         }
 
+        // ── Mobil panel toggle ──────────────────────────────────────
+        function toggleMobilePanel() {
+            const panel = document.getElementById('left-panel');
+            const btn   = document.getElementById('mobile-menu-btn');
+            if (!panel) return;
+            panel.classList.toggle('mobile-open');
+            const isOpen = panel.classList.contains('mobile-open');
+            if (btn) btn.querySelector('.material-symbols-outlined').innerText = isOpen ? 'close' : 'menu';
+        }
+        document.addEventListener('click', function(e) {
+            const panel = document.getElementById('left-panel');
+            const btn   = document.getElementById('mobile-menu-btn');
+            if (window.innerWidth < 768 && panel && panel.classList.contains('mobile-open')) {
+                if (!panel.contains(e.target) && btn && !btn.contains(e.target)) {
+                    panel.classList.remove('mobile-open');
+                    btn.querySelector('.material-symbols-outlined').innerText = 'menu';
+                }
+            }
+        });
+
         // ── Sensors: tarama animasyonu ──────────────────────────────────
         function triggerScan() {
             const countEl = document.getElementById('conjunction-count');
-            const steps   = ['◌ SCANNING...', '● SCANNING ██', '● SCANNING ████', '✓ SCAN COMPLETE'];
+            const steps   = ['◌ TARANYOR...', '● TARANYOR ██', '● TARANYOR ████', '✓ TARAMA TAMAM'];
             let i = 0;
             addLog('Manuel tarama başlatıldı...');
             const iv = setInterval(() => {
@@ -967,7 +1013,7 @@ html_template = """
                     s.material.opacity = 1.0;
                 });
                 alertBanner.classList.add('hidden');
-                if (btn) { btn.style.background = ''; btn.style.color = ''; btn.innerText = 'EMERGENCY OVERRIDE'; }
+                if (btn) { btn.style.background = ''; btn.style.color = ''; btn.innerText = 'ACİL MÜDAHALE'; }
                 addLog('Acil durum modu kapatıldı — normal görünüm');
             }
         }
@@ -1243,7 +1289,7 @@ html_template = """
                 html += '<div class="hud-interactive w-64 glass-panel bg-neutral-950/80 border-t-2 p-3 flex flex-col gap-2" style="border-color:' + color + '">'
                     + '<div class="flex justify-between items-start">'
                     + '<div class="flex flex-col">'
-                    + '<span class="text-[8px] font-bold tracking-widest uppercase" style="color:' + color + '">THREAT #' + (idx + 1) + ' [' + d.level + '] ' + trendIcon + '</span>'
+                    + '<span class="text-[8px] font-bold tracking-widest uppercase" style="color:' + color + '">TEHDİT #' + (idx + 1) + ' [' + d.level + '] ' + trendIcon + '</span>'
                     + '<span class="text-[11px] font-black text-white">' + d.satName + '</span>'
                     + '<span class="text-[9px] text-neutral-400">↔ ' + d.debName + '</span>'
                     + '</div>'
@@ -1269,7 +1315,7 @@ html_template = """
             });
             container.innerHTML = html;
 
-            // Sol panel: CRITICAL SECTOR
+            // Sol panel: KRİTİK SEKTÖR
             const critPanel = document.getElementById('critical-threats-list');
             if (critPanel && realThreatsData.length > 0) {
                 let critHtml = '';

@@ -1,13 +1,19 @@
 version: "3.9"
 
+# ── Yerel geliştirme için ────────────────────────────────────────────────────
+# Google Cloud Run'a deploy için: .\deploy-gcloud.ps1
+# Cloud Run image formatı: europe-west3-docker.pkg.dev/PROJECT_ID/yorunge-repo/yorunge-muhafizi:latest
+
 services:
-  celestial-sentinel:
+  yorunge-muhafizi:
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: celestial-sentinel:latest
-    container_name: celestial_sentinel
+    # Yerel build için: yorunge-muhafizi:latest
+    # GCR push için: europe-west3-docker.pkg.dev/PROJECT_ID/yorunge-repo/yorunge-muhafizi:latest
+    image: yorunge-muhafizi:latest
+    container_name: yorunge_muhafizi
     ports:
       - "8501:8501"
     volumes:
@@ -35,8 +41,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: builder
-    image: celestial-pipeline:latest
-    container_name: celestial_pipeline
+    image: yorunge-pipeline:latest
+    container_name: yorunge_pipeline
     volumes:
       - ./data:/app/data
       - ./lightgbm_risk_modeli.pkl:/app/lightgbm_risk_modeli.pkl

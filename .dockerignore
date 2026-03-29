@@ -35,7 +35,7 @@ notebooks/
 
 # Büyük ham veri dosyaları (pipeline ile üretilir; image'a dahil etme)
 # data/ klasörünü volume ile mount et:
-#   docker run -v $(pwd)/data:/app/data celestial-sentinel
+#   docker run -v $(pwd)/data:/app/data yorunge-muhafizi
 # Eğer image içinde veri isteniyorsa aşağıdaki satırı yorum yapın:
 # data/
 

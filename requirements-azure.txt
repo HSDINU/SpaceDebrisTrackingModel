@@ -1,0 +1,6 @@
+# Azure ML entegrasyonu için ek bağımlılıklar
+# Docker image'a dahil edilmez; sadece yerel registration için:
+#   pip install -r requirements-azure.txt
+azure-ai-ml>=1.12
+azure-identity>=1.15
+mlflow>=2.10
