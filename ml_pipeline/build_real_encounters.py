@@ -80,6 +80,14 @@ def mean_motion_to_derived(n_rev_day: float, ecc: float) -> dict:
     }
 
 
+def norad_from_line1(line1: str) -> str:
+    """TLE satır 1'den NORAD katalog numarası."""
+    parts = line1.split()
+    if len(parts) > 1:
+        return parts[1].rstrip("U")
+    return ""
+
+
 def parse_bstar(line1: str) -> float:
     """TLE line1'den B* sürükleme katsayısını çıkarır."""
     bstar_str = line1[53:61].strip()
@@ -234,11 +242,13 @@ def main() -> int:
             orb.get("eccentricity", 0),
         )
         bstar = parse_bstar(tle1)
+        _norad = norad_from_line1(tle1)
 
         cop_data.append({
             "idx": idx,
             "isim": cop.get("isim", ""),
             "kaynak": cop.get("kaynak", ""),
+            "cop_norad": _norad,
             "satrec": satrec,           # TCA hesabı için
             "r0": np.array(r0), "v0": np.array(v0),
             "r24": np.array(r24), "v24": np.array(v24),
@@ -285,11 +295,15 @@ def main() -> int:
             else:
                 tca_km, tca_saat = float("nan"), float("nan")
 
+            _cn = cop["cop_norad"]
+            _cn_id = float(int(_cn)) if str(_cn).isdigit() else float("nan")
+
             row = {
                 # Meta — kimlik bilgileri
                 "turk_uydu": ts["name"],
                 "cop_isim": cop["isim"],
                 "cop_kaynak": cop["kaynak"],
+                "cop_norad_id": _cn_id,
                 # Feature: t0 ölçümleri
                 "mesafe_t0_km": round(dr0, 4),
                 "hiz_t0_km_s": round(dv0, 4),

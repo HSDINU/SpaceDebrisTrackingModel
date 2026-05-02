@@ -2,8 +2,9 @@
 Adım 2 — Feature Engineering (24h tahmin modeli)
 =================================================
 Girdi: data/processed/encounters_24h.csv
+İsteğe bağlı DISCOS: data/processed/discos_object_destination_flat.csv (NORAD birleşimi)
 
-Feature: t0 ölçümleri + yörünge elemanları
+Feature: t0 ölçümleri + yörünge elemanları [+ DISCOS sayısal alanlar]
 Target : mesafe_t24_km (regression — label leakage yok)
 
 Kontroller:
@@ -31,8 +32,8 @@ def project_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-# Feature sütunları (model eğitiminde kullanılacak)
-FEATURE_COLS = [
+# Çekirdek feature'lar — NaN olan satır düşürülür (zorunlu)
+CORE_FEATURE_COLS = [
     # t0 ölçümleri
     "mesafe_t0_km",
     "hiz_t0_km_s",
@@ -54,11 +55,70 @@ FEATURE_COLS = [
     "sma_diff_km",
 ]
 
+# DISCOS'tan gelen sayısal sütunlar (birleşim yoksa veya NaN ise satır düşmez)
+DISCOS_NUMERIC_FROM_API = [
+    "mass_kg",
+    "length_m",
+    "height_m",
+    "depth_m",
+    "diameter_m",
+    "span_m",
+    "x_sect_max_m2",
+    "x_sect_min_m2",
+    "x_sect_avg_m2",
+    "destination_orbit_count",
+    "dest_sma_m",
+    "dest_inc_deg",
+    "dest_ecc",
+    "dest_raan_deg",
+    "dest_arg_per_deg",
+    "dest_mean_anomaly_deg",
+]
+
 # Target
 TARGET_COL = "mesafe_t24_km"
 
 # Meta sütunlar (eğitimde kullanılmaz)
-META_COLS = ["turk_uydu", "hiz_t24_km_s", "delta_mesafe_km", "cop_isim", "cop_kaynak"]
+META_COLS = [
+    "turk_uydu",
+    "hiz_t24_km_s",
+    "delta_mesafe_km",
+    "cop_isim",
+    "cop_kaynak",
+    "cop_norad_id",
+]
+
+
+def merge_discos_features(df: pd.DataFrame, root: Path) -> pd.DataFrame:
+    """discos_object_destination_flat.csv ile cop_norad_id üzerinden sol birleşim."""
+    path = root / "data" / "processed" / "discos_object_destination_flat.csv"
+    if not path.exists():
+        print(f"\nNOT: DISCOS dosyası yok ({path.name}) — atlanıyor.")
+        return df
+    if "cop_norad_id" not in df.columns:
+        print("\nUYARI: encounters'ta cop_norad_id yok — DISCOS birleştirilemedi.")
+        return df
+    d = pd.read_csv(path, encoding="utf-8-sig")
+    if "norad_id" not in d.columns:
+        print("\nUYARI: DISCOS CSV'de norad_id yok.")
+        return df
+    d = d.sort_values(["norad_id", "destination_orbit_id"], na_position="last")
+    d = d.drop_duplicates(subset=["norad_id"], keep="first")
+    take = ["norad_id"] + [c for c in DISCOS_NUMERIC_FROM_API if c in d.columns]
+    d = d[take].copy()
+    for c in d.columns:
+        if c == "norad_id":
+            continue
+        d[c] = pd.to_numeric(d[c], errors="coerce")
+    ren = {c: f"discos_{c}" for c in d.columns if c != "norad_id"}
+    d = d.rename(columns=ren)
+    out = df.merge(d, left_on="cop_norad_id", right_on="norad_id", how="left")
+    if "norad_id" in out.columns:
+        out = out.drop(columns=["norad_id"])
+    dcols = [c for c in out.columns if c.startswith("discos_")]
+    n_hit = int(out[dcols[0]].notna().sum()) if dcols else 0
+    print(f"\nDISCOS birleşimi: {n_hit:,} / {len(out):,} satırda en az bir discos_* alanı dolu")
+    return out
 
 
 
@@ -80,29 +140,32 @@ def main() -> int:
     df = pd.read_csv(in_path, encoding="utf-8-sig")
     print(f"Kaynak: {len(df):,} satır | {len(df.columns)} sütun")
 
+    df = merge_discos_features(df, root)
+
     # --- Mevcut feature'ları kontrol et ---
-    available_features = [c for c in FEATURE_COLS if c in df.columns]
-    missing_features = [c for c in FEATURE_COLS if c not in df.columns]
+    available_core = [c for c in CORE_FEATURE_COLS if c in df.columns]
+    missing_features = [c for c in CORE_FEATURE_COLS if c not in df.columns]
     if missing_features:
-        print(f"\nUYARI: Eksik feature sütunlar: {missing_features}")
+        print(f"\nUYARI: Eksik çekirdek feature sütunlar: {missing_features}")
 
     if TARGET_COL not in df.columns:
         print(f"HATA: Target sütun '{TARGET_COL}' bulunamadı.")
         return 1
 
-    print(f"Feature sayısı: {len(available_features)}")
+    discos_feat = [c for c in df.columns if c.startswith("discos_")]
+    print(f"Çekirdek feature: {len(available_core)} | DISCOS (sayısal): {len(discos_feat)}")
     print(f"Target: {TARGET_COL}")
 
-    # --- NaN temizleme ---
+    # --- NaN temizleme (yalnız çekirdek + hedef; DISCOS eksikleri satırı silmez) ---
     n_before = len(df)
-    nan_cols = df[available_features + [TARGET_COL]].isna().sum()
+    nan_cols = df[available_core + [TARGET_COL]].isna().sum()
     nan_cols_report = nan_cols[nan_cols > 0]
     if len(nan_cols_report) > 0:
         print(f"\nNaN sütunlar:")
         for col, count in nan_cols_report.items():
             print(f"  {col}: {count:,} ({100*count/len(df):.1f}%)")
 
-    df = df.dropna(subset=available_features + [TARGET_COL])
+    df = df.dropna(subset=available_core + [TARGET_COL])
     print(f"\nNaN temizleme: {n_before:,} → {len(df):,} ({n_before - len(df):,} düşürüldü)")
 
     if len(df) == 0:
@@ -113,10 +176,16 @@ def main() -> int:
     print(f"\n{'─' * 60}")
     print("DAĞILIM KONTROLÜ")
     print(f"{'─' * 60}")
+    available_features = available_core + [c for c in discos_feat if c in df.columns]
+
     skew_report = {}
     for col in available_features:
-        skew = float(df[col].skew())
-        kurt = float(df[col].kurtosis())
+        s = df[col].dropna()
+        if len(s) < 3:
+            print(f"  {col:<25s}  (skew atlandı: yetersiz dolu gözlem)")
+            continue
+        skew = float(s.skew())
+        kurt = float(s.kurtosis())
         skew_report[col] = {"skew": round(skew, 2), "kurt": round(kurt, 2)}
         flag = "⚠️" if abs(skew) > 2 else "✓"
         print(f"  {col:<25s}  skew={skew:>7.2f}  kurt={kurt:>8.2f}  {flag}")
@@ -124,7 +193,10 @@ def main() -> int:
     # --- Log-transform (skew > 2 olan pozitif sütunlar) ---
     log_transformed = []
     for col in available_features:
-        if abs(df[col].skew()) > 2 and (df[col] > 0).all():
+        s = df[col].dropna()
+        if len(s) < 3 or (s <= 0).any():
+            continue
+        if abs(float(s.skew())) > 2:
             df[f"{col}_log"] = np.log1p(df[col])
             log_transformed.append(col)
 
@@ -149,14 +221,14 @@ def main() -> int:
     print(f"\n{'─' * 60}")
     print("YÜKSEK FEATURE-FEATURE KORELASYONLARI (|r| > 0.90)")
     print(f"{'─' * 60}")
-    corr_matrix = df[available_features].corr()
+    corr_matrix = df[available_core].corr()
     high_corr_pairs = []
-    for i in range(len(available_features)):
-        for j in range(i + 1, len(available_features)):
+    for i in range(len(available_core)):
+        for j in range(i + 1, len(available_core)):
             r = corr_matrix.iloc[i, j]
             if abs(r) > 0.90:
-                high_corr_pairs.append((available_features[i], available_features[j], round(r, 4)))
-                print(f"  {available_features[i]:<25s} ↔ {available_features[j]:<25s}  r={r:.4f}")
+                high_corr_pairs.append((available_core[i], available_core[j], round(r, 4)))
+                print(f"  {available_core[i]:<25s} ↔ {available_core[j]:<25s}  r={r:.4f}")
     if not high_corr_pairs:
         print("  Yüksek korelasyonlu feature çifti yok ✓")
 

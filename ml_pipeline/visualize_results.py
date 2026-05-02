@@ -15,7 +15,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import joblib
 import matplotlib
 matplotlib.use("Agg")  # GUI olmadan kaydet
 import matplotlib.pyplot as plt
@@ -25,15 +24,17 @@ import pandas as pd
 from scipy import stats
 from sklearn.model_selection import train_test_split
 
+from ml_pipeline.model_artifact import load_predictor
+
 ROOT = Path(__file__).resolve().parent.parent
 FEAT_PATH = ROOT / "data" / "processed" / "ml_features_24h.csv"
 ENC_PATH = ROOT / "data" / "processed" / "encounters_24h.csv"
 MODEL_PATH = ROOT / "lightgbm_risk_modeli.pkl"
+REPORT_PATH = ROOT / "data" / "processed" / "ml_step03_report.json"
 OUT_DIR = ROOT / "data" / "output" / "plots"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 TARGET = "mesafe_t24_km"
-STRING_COLS = {"turk_uydu", "hiz_t24_km_s", "delta_mesafe_km", "cop_isim", "cop_kaynak", TARGET}
 
 PLT_STYLE = {
     "figure.facecolor": "#0d1117",
@@ -59,11 +60,10 @@ WARN     = "#ffa657"   # turuncu
 def load_data():
     df = pd.read_csv(FEAT_PATH, encoding="utf-8-sig")
     enc = pd.read_csv(ENC_PATH, encoding="utf-8-sig")
-    feature_cols = [c for c in df.columns if c not in STRING_COLS]
+    model, feature_cols = load_predictor(MODEL_PATH, REPORT_PATH)
     X = df[feature_cols].astype(float)
     y = df[TARGET].astype(float)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = joblib.load(MODEL_PATH)
     y_pred = model.predict(X_test)
     residuals = y_test.values - y_pred
     turk_uydu_test = enc["turk_uydu"].iloc[X_test.index].values if "turk_uydu" in enc.columns else None

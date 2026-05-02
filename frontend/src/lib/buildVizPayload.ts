@@ -411,4 +411,7 @@ export function buildVizPayload(
   };
 }
 
-export const FALLBACK_VIZ_PAYLOAD = buildVizPayload(null, [], null);
+export const FALLBACK_VIZ_PAYLOAD: VizPayload = {
+  ...buildVizPayload(null, [], null),
+  dataRevision: "fallback",
+};

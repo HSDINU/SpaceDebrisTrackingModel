@@ -1,0 +1,135 @@
+{
+  "split": {
+    "split_method": "group_shuffle:cop_isim",
+    "group_column": "cop_isim"
+  },
+  "n_train": 113265,
+  "n_test": 43461,
+  "n_features": 22,
+  "train_missing_frac": {},
+  "test_missing_frac": {},
+  "near_constant_train_cols": [],
+  "spearman_with_target_train": {
+    "mesafe_t0_km": 0.7065,
+    "perigee_diff_km": 0.5992,
+    "sma_diff_km": 0.5976,
+    "hiz_t0_km_s": -0.3017,
+    "inc_diff_deg": 0.2816,
+    "cop_period_hours": 0.0523,
+    "cop_period_hours_log": 0.0523,
+    "cop_apogee_km": 0.0521,
+    "cop_apogee_km_log": 0.0521,
+    "cop_mean_motion": -0.0516,
+    "cop_sma_km": 0.0516,
+    "cop_mean_motion_log": -0.0516,
+    "cop_sma_km_log": 0.0516,
+    "cop_perigee_km": 0.0512,
+    "cop_perigee_km_log": 0.0512,
+    "cop_inclination_deg": -0.0337,
+    "cop_bstar": -0.0293,
+    "cop_eccentricity": 0.0185,
+    "cop_eccentricity_log": 0.0185,
+    "cop_arg_perigee_deg": 0.0145,
+    "cop_mean_anomaly_deg": -0.0061,
+    "cop_raan_deg": -0.0042
+  },
+  "ks_train_vs_test_marginals": {
+    "mesafe_t0_km": {
+      "statistic": 0.015375,
+      "pvalue": 0.30078084
+    },
+    "hiz_t0_km_s": {
+      "statistic": 0.03075,
+      "pvalue": 0.00103633
+    },
+    "cop_inclination_deg": {
+      "statistic": 0.375125,
+      "pvalue": 0.0
+    },
+    "cop_eccentricity": {
+      "statistic": 0.322375,
+      "pvalue": 0.0
+    },
+    "cop_raan_deg": {
+      "statistic": 0.048625,
+      "pvalue": 1e-08
+    },
+    "cop_arg_perigee_deg": {
+      "statistic": 0.05975,
+      "pvalue": 0.0
+    },
+    "cop_mean_anomaly_deg": {
+      "statistic": 0.058,
+      "pvalue": 0.0
+    },
+    "cop_mean_motion": {
+      "statistic": 0.268125,
+      "pvalue": 0.0
+    },
+    "cop_sma_km": {
+      "statistic": 0.268125,
+      "pvalue": 0.0
+    },
+    "cop_perigee_km": {
+      "statistic": 0.248,
+      "pvalue": 0.0
+    },
+    "cop_apogee_km": {
+      "statistic": 0.274625,
+      "pvalue": 0.0
+    },
+    "cop_period_hours": {
+      "statistic": 0.268125,
+      "pvalue": 0.0
+    },
+    "cop_bstar": {
+      "statistic": 0.15425,
+      "pvalue": 0.0
+    },
+    "inc_diff_deg": {
+      "statistic": 0.247375,
+      "pvalue": 0.0
+    },
+    "perigee_diff_km": {
+      "statistic": 0.156,
+      "pvalue": 0.0
+    },
+    "sma_diff_km": {
+      "statistic": 0.16975,
+      "pvalue": 0.0
+    },
+    "cop_eccentricity_log": {
+      "statistic": 0.322375,
+      "pvalue": 0.0
+    },
+    "cop_mean_motion_log": {
+      "statistic": 0.268125,
+      "pvalue": 0.0
+    },
+    "cop_sma_km_log": {
+      "statistic": 0.268125,
+      "pvalue": 0.0
+    },
+    "cop_perigee_km_log": {
+      "statistic": 0.248,
+      "pvalue": 0.0
+    },
+    "cop_apogee_km_log": {
+      "statistic": 0.274625,
+      "pvalue": 0.0
+    },
+    "cop_period_hours_log": {
+      "statistic": 0.268125,
+      "pvalue": 0.0
+    }
+  },
+  "target_shapiro_train_sample": {
+    "W": 0.829131,
+    "pvalue": 0.0,
+    "n": 5000
+  },
+  "notes": [
+    "Spearman ve Shapiro yalnızca eğitim kümesinde hesaplanır.",
+    "KS testi özellik marjinallerini karşılaştırır; test etiketi kullanılmaz."
+  ]
+}

@@ -85,4 +85,9 @@ export type VizPayload = {
   pipelineMeta: PipelineMeta;
   logMessages: string[];
   sidebar: SidebarPayload;
+  /**
+   * Kaynak dosya imzası (mtime+size). Aynı kalırsa 3D sahne yeniden kurulmaz;
+   * API her yanıtta döner.
+   */
+  dataRevision?: string;
 };

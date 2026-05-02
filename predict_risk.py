@@ -25,9 +25,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
+
+from ml_pipeline.model_artifact import load_predictor
 
 ROOT = Path(__file__).resolve().parent
 MODEL_PATH = ROOT / "lightgbm_risk_modeli.pkl"
@@ -39,7 +40,6 @@ OUT_DIR = ROOT / "data" / "output"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 TARGET = "mesafe_t24_km"
-EXCLUDE = {TARGET, "turk_uydu", "hiz_t24_km_s", "delta_mesafe_km", "cop_isim", "cop_kaynak"}
 
 # Risk eşikleri (km)
 RISK_THRESHOLDS = {
@@ -151,7 +151,7 @@ def main() -> int:
         print(f"HATA: Model bulunamadı → {MODEL_PATH}")
         print("Önce: python -m ml_pipeline.step03_train_baseline")
         return 1
-    model = joblib.load(MODEL_PATH)
+    model, feature_cols = load_predictor(MODEL_PATH, REPORT_PATH)
 
     # --- Feature ve encounter verileri ---
     if not FEAT_PATH.exists() or not ENC_PATH.exists():
@@ -161,10 +161,15 @@ def main() -> int:
     feat_df = pd.read_csv(FEAT_PATH, encoding="utf-8-sig")
     enc_df = pd.read_csv(ENC_PATH, encoding="utf-8-sig")
 
-    feature_cols = [c for c in feat_df.columns if c not in EXCLUDE]
+    missing = [c for c in feature_cols if c not in feat_df.columns]
+    if missing:
+        print("HATA: Modelin beklediği sütunlar feature CSV'de yok:")
+        print(f"  {missing[:25]}{'…' if len(missing) > 25 else ''}")
+        print("Önce: python -m ml_pipeline.step02_build_features && python -m ml_pipeline.step03_train_baseline")
+        return 1
     X = feat_df[feature_cols].astype(float)
 
-    print(f"Feature sayısı: {len(feature_cols)}")
+    print(f"Feature sayısı (eğitimle aynı sıra): {len(feature_cols)}")
     print(f"Toplam çift   : {len(feat_df):,}")
 
     # --- Tahmin ---

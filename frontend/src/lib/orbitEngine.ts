@@ -735,8 +735,10 @@ export function mountOrbitScene(
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
   controls.rotateSpeed = 0.5;
-  controls.minDistance = 120;
+  /* Dünya yarıçapı ~100; hedef (0,0,0) — minDistance yüzeye çok yakın zoomu engeller */
+  controls.minDistance = 235;
   controls.maxDistance = 1500;
+  controls.zoomSpeed = 0.85;
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.4));
   const sunLight = new THREE.DirectionalLight(0xffffff, 1.8);

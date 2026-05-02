@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -37,39 +39,55 @@ export default function OrbitDashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [vizForm, setVizForm] = useState<VizSimSettings>(DEFAULT_VIZ_SETTINGS);
 
-  const fetchVizData = useCallback((signal?: AbortSignal) => {
-    setLoadError(null);
-    return fetch(`/api/viz-data?t=${Date.now()}`, {
-      cache: "no-store",
-      signal,
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.json() as Promise<VizPayload>;
+  const fetchVizData = useCallback(
+    (opts?: { signal?: AbortSignal; force?: boolean }) => {
+      const { signal, force } = opts ?? {};
+      setLoadError(null);
+      const q = new URLSearchParams();
+      q.set("t", String(Date.now()));
+      if (force) q.set("force", "1");
+      return fetch(`/api/viz-data?${q}`, {
+        cache: "no-store",
+        signal,
       })
-      .then((data) => {
-        setPayload(data);
-      })
-      .catch((err: unknown) => {
-        const aborted =
-          err instanceof DOMException && err.name === "AbortError";
-        if (aborted) return;
-        setLoadError(
-          "Veri yüklenemedi. Pipeline çıktısı ve API yolunu kontrol edin.",
-        );
-      });
-  }, []);
+        .then((r) => {
+          if (!r.ok) throw new Error(`${r.status}`);
+          return r.json() as Promise<VizPayload>;
+        })
+        .then((data) => {
+          startTransition(() => setPayload(data));
+        })
+        .catch((err: unknown) => {
+          const aborted =
+            err instanceof DOMException && err.name === "AbortError";
+          if (aborted) return;
+          setLoadError(
+            "Veri yüklenemedi. Pipeline çıktısı ve API yolunu kontrol edin.",
+          );
+        });
+    },
+    [],
+  );
 
   useEffect(() => {
     const ac = new AbortController();
-    void fetchVizData(ac.signal);
+    void fetchVizData({ signal: ac.signal });
     return () => ac.abort();
   }, [fetchVizData]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    void fetchVizData().finally(() => setRefreshing(false));
+    void fetchVizData({ force: true }).finally(() => setRefreshing(false));
   }, [fetchVizData]);
+
+  /** Aynı kalırsa Three.js sahnesi yeniden kurulmaz (takılma azalır). */
+  const sceneDataRevision = useMemo(() => {
+    if (payload == null) return "no-payload";
+    return (
+      payload.dataRevision ??
+      `legacy:${payload.pipelineMeta.hesap_utc}:${payload.pipelineMeta.n_toplam}`
+    );
+  }, [payload]);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1101px)");
@@ -90,7 +108,8 @@ export default function OrbitDashboard() {
     return () => window.removeEventListener("keydown", onKey);
   }, [settingsOpen]);
 
-  /** İki rAF: layout ölçümü (orbit-host yüksekliği) kesinleşsin; Strict Mode'da cleanup güvenli olsun. */
+  /** İki rAF: layout ölçümü (orbit-host yüksekliği) kesinleşsin; Strict Mode'da cleanup güvenli olsun.
+   *  Bağımlılık: yalnızca `sceneDataRevision` — veri dosyaları değişmedikçe sahne dispose edilmez. */
   useLayoutEffect(() => {
     if (!rootRef.current) return;
 
@@ -184,7 +203,9 @@ export default function OrbitDashboard() {
       dispose?.();
       sceneRef.current = null;
     };
-  }, [payload]);
+    // payload bu effect içinde yalnızca revision değiştiği render anındaki değeri kullanır
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sahne yalnızca sceneDataRevision değişince kurulur
+  }, [sceneDataRevision]);
 
   const metaChip =
     payload != null

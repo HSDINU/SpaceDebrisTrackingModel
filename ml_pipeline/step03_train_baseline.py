@@ -9,8 +9,11 @@ Problem: Verilen yörünge elemanları + t0 mesafesinden,
 Label leakage YOK — target zamanda ayrılmış.
 Sentetik veri kullanılmaz.
 
-Metrikler: RMSE, MAE, MAPE, R², 5-fold CV
+Metrikler: RMSE, MAE, MAPE, R²; CV: GroupKFold (cop_isim) veya KFold — yalnızca eğitim kümesi
 Baseline : Naive persistence (mesafe_t24 ≈ mesafe_t0)
+
+Ön-adım: replicate_training_split sonrası train-only EDA + KS raporu
+  → data/processed/ml_pretrain_eda_report.json
 
 Çıktı: lightgbm_risk_modeli.pkl + data/processed/ml_step03_report.json
 
@@ -23,21 +26,31 @@ import json
 import sys
 from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import KFold, cross_val_score, train_test_split
+from sklearn.model_selection import GroupKFold, KFold, cross_val_score, train_test_split
+
+from ml_pipeline.model_artifact import save_training_artifact
+from ml_pipeline.pretrain_eda import run_eda_after_split
+from ml_pipeline.training_split import replicate_training_split
 
 try:
     import lightgbm as lgb
 except ImportError:
-    raise SystemExit("lightgbm gerekli: pip install lightgbm")
+    lgb = None  # type: ignore
 
-
-# Model eğitiminde KULLANILMAYACAK sütunlar
-EXCLUDE_COLS = {"mesafe_t24_km", "turk_uydu", "hiz_t24_km_s", "delta_mesafe_km",
-                "cop_isim", "cop_kaynak"}
+# Model eğitiminde KULLANILMAYACAK sütunlar (kimlik, hedef, t+24h sızıntısı)
+EXCLUDE_COLS = {
+    "mesafe_t24_km",
+    "turk_uydu",
+    "hiz_t24_km_s",
+    "delta_mesafe_km",
+    "cop_isim",
+    "cop_kaynak",
+    "cop_norad_id",
+}
 TARGET = "mesafe_t24_km"
 
 
@@ -46,6 +59,9 @@ def project_root() -> Path:
 
 
 def main() -> int:
+    if lgb is None:
+        raise SystemExit("lightgbm gerekli: pip install lightgbm")
+
     root = project_root()
     feat_path = root / "data" / "processed" / "ml_features_24h.csv"
     report_path = root / "data" / "processed" / "ml_step03_report.json"
@@ -63,8 +79,14 @@ def main() -> int:
         print(f"HATA: Yalnızca {len(df)} satır var.")
         return 1
 
-    # Feature sütunları
-    feature_cols = [c for c in df.columns if c not in EXCLUDE_COLS]
+    # Yalnızca sayısal sütunlar (DISCOS + çekirdek); kimlik/hedef EXCLUDE_COLS içinde
+    feature_cols = [
+        c
+        for c in df.columns
+        if c not in EXCLUDE_COLS
+        and c != TARGET
+        and pd.api.types.is_numeric_dtype(df[c])
+    ]
     print(f"Feature sayısı: {len(feature_cols)}")
     print(f"Feature'lar: {feature_cols}")
 
@@ -75,11 +97,28 @@ def main() -> int:
     print(f"Target ({TARGET}):")
     print(f"  min={y.min():.1f}  max={y.max():.1f}  mean={y.mean():.1f}  std={y.std():.1f}")
 
-    # --- Train/Test split ---
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
-    print(f"\nEğitim: {len(X_train):,} | Test: {len(X_test):,}")
+    # --- Train/Test split (önce ayrım — CV ve EDA test etiketini görmez) ---
+    X_train, X_test, y_train, y_test, split_meta = replicate_training_split(df, X, y)
+    split_method = split_meta["split_method"]
+    group_col = split_meta["group_column"]
+    if split_method.startswith("group_shuffle"):
+        print(f"\nTrain/Test: grup ayrımı ({group_col}) — aynı çöp/uydu tek tarafta")
+    else:
+        print("\nTrain/Test: rastgele (grup sütunu yetersiz — cop_isim/turk_uydu kontrol edin)")
+    print(f"Eğitim: {len(X_train):,} | Test: {len(X_test):,}")
+
+    eda_path = root / "data" / "processed" / "ml_pretrain_eda_report.json"
+    run_eda_after_split(X_train, X_test, y_train, feature_cols, split_meta, eda_path)
+
+    groups: pd.Series | None = None
+    if group_col == "cop_isim":
+        groups = df["cop_isim"].fillna("__bos__").astype(str)
+    elif group_col == "turk_uydu":
+        groups = df["turk_uydu"].astype(str)
+
+    groups_train: pd.Series | None = None
+    if groups is not None:
+        groups_train = groups.loc[X_train.index]
 
     # ════════════════════════════════════════════
     # BASELINE: Naive Persistence (t0 → t24 tahmini)
@@ -108,7 +147,7 @@ def main() -> int:
     print("LightGBM Regression")
     print(f"{'─' * 60}")
 
-    model = lgb.LGBMRegressor(
+    lgb_params = dict(
         n_estimators=500,
         learning_rate=0.05,
         num_leaves=63,
@@ -119,13 +158,41 @@ def main() -> int:
         random_state=42,
         verbose=-1,
     )
+    model = lgb.LGBMRegressor(**lgb_params)
 
-    # 5-fold CV
-    cv = KFold(n_splits=5, shuffle=True, random_state=42)
-
-    cv_rmse = -cross_val_score(model, X, y, cv=cv, scoring="neg_root_mean_squared_error")
-    cv_mae = -cross_val_score(model, X, y, cv=cv, scoring="neg_mean_absolute_error")
-    cv_r2 = cross_val_score(model, X, y, cv=cv, scoring="r2")
+    # CV: gruplar varsa GroupKFold (daha gerçekçi genelleme); yoksa KFold
+    print(f"\n{'─' * 60}")
+    print("Çapraz doğrulama")
+    print(f"{'─' * 60}")
+    if groups_train is not None and groups_train.nunique() >= 5:
+        n_splits = min(5, int(groups_train.nunique()))
+        gkf = GroupKFold(n_splits=n_splits)
+        cv_rmse_list: list[float] = []
+        cv_mae_list: list[float] = []
+        cv_r2_list: list[float] = []
+        for tr, va in gkf.split(X_train, y_train, groups_train):
+            m = lgb.LGBMRegressor(**lgb_params)
+            m.fit(X_train.iloc[tr], y_train.iloc[tr])
+            pred = m.predict(X_train.iloc[va])
+            cv_rmse_list.append(float(np.sqrt(mean_squared_error(y_train.iloc[va], pred))))
+            cv_mae_list.append(float(mean_absolute_error(y_train.iloc[va], pred)))
+            cv_r2_list.append(float(r2_score(y_train.iloc[va], pred)))
+        cv_rmse = np.array(cv_rmse_list)
+        cv_mae = np.array(cv_mae_list)
+        cv_r2 = np.array(cv_r2_list)
+        print(f"  (GroupKFold yalnızca eğitim, n_splits={n_splits}, grup={group_col})")
+    else:
+        cv = KFold(n_splits=5, shuffle=True, random_state=42)
+        cv_rmse = -cross_val_score(
+            lgb.LGBMRegressor(**lgb_params), X_train, y_train, cv=cv, scoring="neg_root_mean_squared_error"
+        )
+        cv_mae = -cross_val_score(
+            lgb.LGBMRegressor(**lgb_params), X_train, y_train, cv=cv, scoring="neg_mean_absolute_error"
+        )
+        cv_r2 = cross_val_score(
+            lgb.LGBMRegressor(**lgb_params), X_train, y_train, cv=cv, scoring="r2"
+        )
+        print("  (KFold yalnızca eğitim — grup yok)")
 
     print(f"  CV RMSE : {cv_rmse.mean():.2f} ± {cv_rmse.std():.2f}")
     print(f"  CV MAE  : {cv_mae.mean():.2f} ± {cv_mae.std():.2f}")
@@ -199,20 +266,31 @@ def main() -> int:
           f"({100 * (np.abs(residuals) < 500).sum() / len(residuals):.1f}%)")
 
     # ════════════════════════════════════════════
-    # KAYDET
+    # KAYDET (model + tahminde kullanılacak sütun sırası)
     # ════════════════════════════════════════════
     out_model = root / "lightgbm_risk_modeli.pkl"
-    joblib.dump(model, out_model)
-    print(f"\nModel: {out_model}")
+    save_training_artifact(out_model, model, feature_cols, TARGET)
+    print(f"\nModel (artifact): {out_model}")
 
     report = {
         "model_type": "LightGBM Regression (24h Distance Prediction)",
+        "artifact_schema_version": 1,
         "n_total": int(len(df)),
         "n_train": int(len(X_train)),
         "n_test": int(len(X_test)),
         "n_features": len(feature_cols),
         "feature_columns": feature_cols,
         "target": TARGET,
+        "train_test_split": split_method,
+        "group_column": group_col,
+        "pretrain_eda_report": str(eda_path.relative_to(root)),
+        "dependency_versions": {
+            "python": sys.version.split()[0],
+            "numpy": np.__version__,
+            "pandas": pd.__version__,
+            "scikit_learn": sklearn.__version__,
+            "lightgbm": lgb.__version__,
+        },
         "baseline_naive": {
             "rmse": round(float(rmse_naive), 2),
             "mae": round(float(mae_naive), 2),
@@ -223,7 +301,9 @@ def main() -> int:
             "cv_rmse_mean": round(float(cv_rmse.mean()), 2),
             "cv_rmse_std": round(float(cv_rmse.std()), 2),
             "cv_mae_mean": round(float(cv_mae.mean()), 2),
+            "cv_mae_std": round(float(cv_mae.std()), 2),
             "cv_r2_mean": round(float(cv_r2.mean()), 6),
+            "cv_r2_std": round(float(cv_r2.std()), 6),
             "test_rmse": round(float(rmse), 2),
             "test_mae": round(float(mae), 2),
             "test_mape": round(float(mape), 2),
