@@ -1,10 +1,10 @@
 "use client";
 
-import type { ThreatRecord } from "@/lib/vizTypes";
+import type { ThreatRecord } from "@/lib/viz/vizTypes";
 import type {
   ExperimentWeights,
   UserDataFilters,
-} from "@/lib/vizUserTransforms";
+} from "@/lib/viz/vizUserTransforms";
 
 type Props = {
   threats: ThreatRecord[];

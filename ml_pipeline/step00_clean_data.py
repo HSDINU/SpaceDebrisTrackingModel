@@ -15,7 +15,7 @@ Sentetik veri kullanılmaz.
        data/processed/cleaning_report.json
 
 Çalıştırma:
-  python -m ml_pipeline.step00_clean_data
+  python -m ml_pipeline.data.step00_clean_data
 """
 from __future__ import annotations
 

@@ -157,7 +157,7 @@ def main() -> int:
     cleaned_path = out_dir / "cop_verileri_cleaned.csv"
     if not cleaned_path.exists():
         print("HATA: cop_verileri_cleaned.csv bulunamadı.")
-        print("Önce: python -m ml_pipeline.step00_clean_data")
+        print("Önce: python -m ml_pipeline.data.step00_clean_data")
         return 1
     df_clean = pd.read_csv(cleaned_path, encoding="utf-8-sig")
     print(f"Temizlenmiş çöp: {len(df_clean):,}")

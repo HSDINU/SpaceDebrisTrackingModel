@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ml_pipeline.discos_client import (
+from ml_pipeline.data.discos_client import (
     fetch_objects_with_destination_orbits,
     flatten_object_destination_rows,
     get_token_from_env,

@@ -17,7 +17,7 @@ Kontroller:
 Çıktı: data/processed/ml_features_24h.csv
 
 Çalıştırma:
-  python -m ml_pipeline.step02_build_features
+  python -m ml_pipeline.training.step02_build_features
 """
 from __future__ import annotations
 
@@ -28,7 +28,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ml_pipeline.feature_profiles import CORE_ONLY, get_profile_spec, normalize_profile
+from ml_pipeline.profiles.feature_profiles import (
+    CORE_ONLY,
+    get_profile_spec,
+    normalize_profile,
+)
 
 def project_root() -> Path:
     return Path(__file__).resolve().parent.parent

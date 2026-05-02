@@ -112,7 +112,7 @@ def run_eda_after_split(
 
 def main() -> int:
     """Tek başına: ml_features_24h.csv üzerinde split + EDA (model yok)."""
-    from ml_pipeline.training_split import TARGET, replicate_training_split
+    from ml_pipeline.training.training_split import TARGET, replicate_training_split
 
     root = Path(__file__).resolve().parent.parent
     feat_path = root / "data" / "processed" / "ml_features_24h.csv"

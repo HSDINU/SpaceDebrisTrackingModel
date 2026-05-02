@@ -10,21 +10,21 @@ import {
   useState,
 } from "react";
 import { HudScanIcon, HudSettingsIcon } from "@/components/HudHeaderIcons";
-import PipelineSidebar from "@/components/PipelineSidebar";
-import UserParticipationPanel from "@/components/UserParticipationPanel";
-import { FALLBACK_VIZ_PAYLOAD } from "@/lib/buildVizPayload";
+import PipelineSidebar from "@/features/pipeline/PipelineSidebar";
+import UserParticipationPanel from "@/features/participation/UserParticipationPanel";
+import { FALLBACK_VIZ_PAYLOAD } from "@/lib/viz/buildVizPayload";
 import {
   mountOrbitScene,
   type OrbitSceneHandle,
   type VizSimSettings,
-} from "@/lib/orbitEngine";
-import type { ThreatRecord, VizPayload } from "@/lib/vizTypes";
+} from "@/features/orbit/orbitEngine";
+import type { ThreatRecord, VizPayload } from "@/lib/viz/vizTypes";
 import {
   applyUserVizTransforms,
   buildFilterOptionsFromPayload,
   DEFAULT_EXPERIMENT_WEIGHTS,
   DEFAULT_USER_DATA_FILTERS,
-} from "@/lib/vizUserTransforms";
+} from "@/lib/viz/vizUserTransforms";
 
 const DEFAULT_VIZ_SETTINGS: VizSimSettings = {
   riskThreshold: 1000,

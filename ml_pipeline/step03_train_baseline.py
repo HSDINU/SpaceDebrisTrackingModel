@@ -18,7 +18,7 @@ Baseline : Naive persistence (mesafe_t24 ≈ mesafe_t0)
 Çıktı: lightgbm_risk_modeli.pkl + data/processed/ml_step03_report.json
 
 Çalıştırma:
-  python -m ml_pipeline.step03_train_baseline
+  python -m ml_pipeline.training.step03_train_baseline
 """
 from __future__ import annotations
 
@@ -34,9 +34,13 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold, KFold, cross_val_score, train_test_split
 
 from ml_pipeline.model_artifact import save_training_artifact
-from ml_pipeline.feature_profiles import CORE_ONLY, get_profile_spec, normalize_profile
-from ml_pipeline.pretrain_eda import run_eda_after_split
-from ml_pipeline.training_split import replicate_training_split
+from ml_pipeline.profiles.feature_profiles import (
+    CORE_ONLY,
+    get_profile_spec,
+    normalize_profile,
+)
+from ml_pipeline.analysis.pretrain_eda import run_eda_after_split
+from ml_pipeline.training.training_split import replicate_training_split
 
 try:
     import lightgbm as lgb

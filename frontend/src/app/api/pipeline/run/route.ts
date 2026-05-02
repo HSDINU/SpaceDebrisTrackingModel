@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       ? [
           {
             label: "step02_build_features",
-            args: ["-m", "ml_pipeline.step02_build_features", "--profile", profile],
+            args: ["-m", "ml_pipeline.training.step02_build_features", "--profile", profile],
           },
         ]
       : []),
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       ? [
           {
             label: "step03_train_baseline",
-            args: ["-m", "ml_pipeline.step03_train_baseline", "--profile", profile],
+            args: ["-m", "ml_pipeline.training.step03_train_baseline", "--profile", profile],
           },
         ]
       : []),

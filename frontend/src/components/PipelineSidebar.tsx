@@ -1,6 +1,6 @@
 "use client";
 
-import type { SidebarPayload } from "@/lib/vizTypes";
+import type { SidebarPayload } from "@/lib/viz/vizTypes";
 
 type Props = {
   sidebar: SidebarPayload | null;

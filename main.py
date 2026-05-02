@@ -210,7 +210,7 @@ def pipeline_full(train: bool = False, rebuild: bool = False,
 
     # 1. Temizleme
     if rebuild or not PATHS["cleaned"].exists():
-        if not step("1. Veri Temizleme", module="ml_pipeline.step00_clean_data"):
+        if not step("1. Veri Temizleme", module="ml_pipeline.data.step00_clean_data"):
             return 1
 
     # 2. Karşılaşma tablosu (TCA dahil)
@@ -220,13 +220,16 @@ def pipeline_full(train: bool = False, rebuild: bool = False,
 
     # 3. Feature engineering
     if rebuild or not PATHS["features"].exists():
-        if not step("3. Feature Engineering", module="ml_pipeline.step02_build_features"):
+        if not step("3. Feature Engineering", module="ml_pipeline.training.step02_build_features"):
             return 1
 
     # 4. Model eğitimi
     if train or rebuild or not PATHS["model"].exists():
         if train or rebuild or confirm_train():
-            if not step("4. Model Eğitimi (LightGBM)", module="ml_pipeline.step03_train_baseline"):
+            if not step(
+                "4. Model Eğitimi (LightGBM)",
+                module="ml_pipeline.training.step03_train_baseline",
+            ):
                 return 1
         else:
             print("   ⏭  Eğitim atlandı — mevcut model kullanılacak.")
@@ -241,11 +244,11 @@ def pipeline_full(train: bool = False, rebuild: bool = False,
 
     # 6. Görselleştirme (isteğe bağlı)
     if viz:
-        step("6. Görselleştirme", module="ml_pipeline.visualize_results", required=False)
+        step("6. Görselleştirme", module="ml_pipeline.analysis.visualize_results", required=False)
 
     # 7. TCA doğrulama (isteğe bağlı)
     if validate:
-        step("7. TCA Doğrulama", module="ml_pipeline.validate_tca", required=False)
+        step("7. TCA Doğrulama", module="ml_pipeline.analysis.validate_tca", required=False)
 
     # ── Özet ───────────────────────────────────────────────
     total = time.perf_counter() - t_start

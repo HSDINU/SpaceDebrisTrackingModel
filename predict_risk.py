@@ -30,7 +30,11 @@ import numpy as np
 import pandas as pd
 
 from ml_pipeline.model_artifact import load_predictor
-from ml_pipeline.feature_profiles import CORE_ONLY, get_profile_spec, normalize_profile
+from ml_pipeline.profiles.feature_profiles import (
+    CORE_ONLY,
+    get_profile_spec,
+    normalize_profile,
+)
 
 ROOT = Path(__file__).resolve().parent
 FEAT_PATH = ROOT / "data" / "processed" / "ml_features_24h.csv"
@@ -224,7 +228,7 @@ def main() -> int:
             report_path = ROOT / "data" / "processed" / "ml_step03_report.json"
     if not model_path.exists():
         print(f"HATA: Model bulunamadı → {model_path}")
-        print("Önce: python -m ml_pipeline.step03_train_baseline --profile <profile>")
+        print("Önce: python -m ml_pipeline.training.step03_train_baseline --profile <profile>")
         return 1
     model, feature_cols = load_predictor(model_path, report_path)
     print(f"Aktif profile: {selected_profile}")
@@ -241,7 +245,10 @@ def main() -> int:
     if missing:
         print("HATA: Modelin beklediği sütunlar feature CSV'de yok:")
         print(f"  {missing[:25]}{'…' if len(missing) > 25 else ''}")
-        print("Önce: python -m ml_pipeline.step02_build_features && python -m ml_pipeline.step03_train_baseline")
+        print(
+            "Önce: python -m ml_pipeline.training.step02_build_features && "
+            "python -m ml_pipeline.training.step03_train_baseline"
+        )
         return 1
     X = feat_df[feature_cols].astype(float)
 

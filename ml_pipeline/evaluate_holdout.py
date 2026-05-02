@@ -15,7 +15,7 @@ Bu problem sınıflandırma değil regresyon. "Doğruluk" yerine R², RMSE, MAE,
 ve pratik eşikler: |hata| < 100 km / 500 km oranları raporlanır.
 
 Çalıştırma (repo kökünden):
-  python -m ml_pipeline.evaluate_holdout
+  python -m ml_pipeline.training.evaluate_holdout
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from ml_pipeline.model_artifact import load_predictor
-from ml_pipeline.training_split import TARGET, replicate_training_split
+from ml_pipeline.training.training_split import TARGET, replicate_training_split
 
 ROOT = Path(__file__).resolve().parent.parent
 FEAT_PATH = ROOT / "data" / "processed" / "ml_features_24h.csv"

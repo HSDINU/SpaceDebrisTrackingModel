@@ -3,13 +3,13 @@ import { readFileSync } from "fs";
 
 import path from "path";
 import { NextResponse } from "next/server";
-import { buildVizPayload } from "@/lib/buildVizPayload";
+import { buildVizPayload } from "@/lib/viz/buildVizPayload";
 import { buildSourceSignature } from "@/lib/sourceFileSignature";
 import {
   clearVizPayloadRouteCache,
   getCachedVizPayload,
   setCachedVizPayload,
-} from "@/lib/vizPayloadRouteCache";
+} from "@/lib/viz/vizPayloadRouteCache";
 import { parse } from "csv-parse/sync";
 
 /** Repo kökü: .../SpaceDebrisTrackingModel (frontend'in bir üst dizini) */
