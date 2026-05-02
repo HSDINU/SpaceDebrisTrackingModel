@@ -551,6 +551,8 @@ html_template = """
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
         ::-webkit-scrollbar-thumb { background: #00f3ff; }
+        /* Alt HUD + tehdit kartları taşmasın; dar ekranda satır kırılsın */
+        #radar-windows { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; max-width: 100%; }
         @keyframes flicker {
             0% { opacity: 0.8; } 5% { opacity: 0.2; } 10% { opacity: 0.9; } 100% { opacity: 1; }
         }
@@ -651,9 +653,9 @@ html_template = """
             </button>
 </div>
 </aside>
-<main id="main-content" class="hud-overlay fixed inset-0 z-30 flex flex-col p-6 pl-24 pt-20">
-<div id="left-panel" class="flex flex-col gap-4 w-72 h-full">
-<section class="hud-interactive glass-panel bg-surface-container-low/60 border-l-2 border-cyan-400 p-4">
+<main id="main-content" class="hud-overlay fixed inset-0 z-30 flex min-h-0 flex-col p-6 pl-24 pt-20">
+<div id="left-panel" class="flex min-h-0 w-72 flex-1 flex-col gap-4 overflow-hidden">
+<section class="hud-interactive glass-panel bg-surface-container-low/60 border-l-2 border-cyan-400 p-4 flex-shrink-0">
 <div class="flex justify-between items-center mb-3">
 <h2 class="text-xs font-black uppercase tracking-widest text-primary-fixed">SİSTEM_KAYDI</h2>
 <span class="text-[10px] text-tertiary-fixed font-mono" id="log-model-tag">LightGBM</span>
@@ -665,17 +667,17 @@ html_template = """
 </div>
 </div>
 </section>
-<section class="hud-interactive glass-panel bg-surface-container-low/60 border-l-2 border-error-container p-4">
-<h2 class="text-xs font-black uppercase tracking-widest text-error mb-3 flex items-center gap-2">
+<section class="hud-interactive glass-panel bg-surface-container-low/60 border-l-2 border-error-container p-4 flex min-h-0 flex-1 flex-col">
+<h2 class="text-xs font-black uppercase tracking-widest text-error mb-3 flex flex-shrink-0 items-center gap-2">
 <span class="material-symbols-outlined text-sm">warning</span>
                     KRİTİK SEKTÖR
                 </h2>
-<div class="space-y-3" id="critical-threats-list">
+<div class="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1" id="critical-threats-list">
 <div class="text-[9px] text-neutral-500 italic">Tehdit verisi yükleniyor...</div>
 </div>
 </section>
 </div>
-<div class="mt-auto mb-4 self-center flex flex-col items-center gap-4">
+<div class="mt-auto mb-4 flex w-full max-w-full flex-shrink-0 flex-col items-center gap-4 self-center px-1">
 <div class="flex gap-4" id="radar-windows"></div>
 <div id="bottom-status-bar" class="hud-interactive glass-panel bg-surface-container-low/80 border border-cyan-500/20 px-6 py-2 flex items-center gap-6">
 <div class="flex flex-col items-center">
@@ -1286,7 +1288,7 @@ html_template = """
                             : d.level === 'CANLI'   ? '#00dce6'
                             :                         '#4488ff';
                 const trendIcon = d.trend === 'YAKLASYOR' ? '▼' : d.trend === 'UZAKLASYOR' ? '▲' : '⟳';
-                html += '<div class="hud-interactive w-64 glass-panel bg-neutral-950/80 border-t-2 p-3 flex flex-col gap-2" style="border-color:' + color + '">'
+                html += '<div class="hud-interactive glass-panel bg-neutral-950/80 border-t-2 p-3 flex flex-col gap-2" style="border-color:' + color + ';width:100%;max-width:min(20rem,100%);min-width:11rem;flex:1 1 12rem">'
                     + '<div class="flex justify-between items-start">'
                     + '<div class="flex flex-col">'
                     + '<span class="text-[8px] font-bold tracking-widest uppercase" style="color:' + color + '">TEHDİT #' + (idx + 1) + ' [' + d.level + '] ' + trendIcon + '</span>'
@@ -1512,4 +1514,5 @@ rendered_html = (
 )
 
 # ── Ekrana bas ────────────────────────────────────────────────
-components.html(rendered_html, height=900, scrolling=False)
+# width=None → Streamlit sütununu doldurur; yükseklik iframe sınırı — içerik flex ile sığdırılır, taşarsa kaydırma açık
+components.html(rendered_html, width=None, height=1050, scrolling=True)
