@@ -195,10 +195,25 @@ function buildTehditListesi(kritikRows: Record<string, string>[]): ThreatRecord[
     const scoreRaw = parseFloat(row.bilesik_risk_skoru ?? "0");
     let malzeme = String(row.malzeme ?? "Bilinmiyor");
     if (malzeme.length > 55) malzeme = malzeme.slice(0, 55) + "...";
+    const uydu = String(row.turk_uydu ?? "");
+    const cop = String(row.cop_parca ?? "");
+    const t24 = String(row.tahmin_t24_km ?? "0");
+    const pairId = `${uydu}|${cop}|${t24}`;
+    const massRaw = row.discos_mass_kg;
+    const massNum =
+      massRaw !== undefined && massRaw !== "" && !Number.isNaN(parseFloat(String(massRaw)))
+        ? Math.round(parseFloat(String(massRaw)) * 100) / 100
+        : undefined;
+    const noradRaw = row.cop_norad_id;
+    const noradNum =
+      noradRaw !== undefined && noradRaw !== "" && String(noradRaw).trim() !== ""
+        ? parseInt(String(noradRaw), 10)
+        : undefined;
     return {
-      hedef_uydu: String(row.turk_uydu ?? ""),
-      yaklasan_cop: String(row.cop_parca ?? ""),
-      minimum_mesafe_km: Math.round(parseFloat(row.tahmin_t24_km ?? "0") * 10) / 10,
+      pair_id: pairId,
+      hedef_uydu: uydu,
+      yaklasan_cop: cop,
+      minimum_mesafe_km: Math.round(parseFloat(t24) * 10) / 10,
       mesafe_t0_km: Math.round(parseFloat(row.mesafe_t0_km ?? "0") * 10) / 10,
       bagil_hiz_km_s: Math.round(parseFloat(row.hiz_t0_km_s ?? "0") * 1000) / 1000,
       hiz_t24_km_s: Math.round(parseFloat(row.hiz_t24_km_s ?? "0") * 1000) / 1000,
@@ -212,16 +227,24 @@ function buildTehditListesi(kritikRows: Record<string, string>[]): ThreatRecord[
       orbital_risk: Math.round(parseFloat(row.orbital_risk_skoru ?? "0") * 100) / 100,
       egim: Math.round(parseFloat(row.cop_inclination_deg ?? "0") * 100) / 100,
       eksantrisite: Math.round(parseFloat(row.cop_eccentricity ?? "0") * 100000) / 100000,
+      ...(noradNum !== undefined && !Number.isNaN(noradNum) ? { cop_norad_id: noradNum } : {}),
+      ...(row.discos_object_class
+        ? { discos_object_class: String(row.discos_object_class) }
+        : {}),
+      ...(row.discos_mission ? { discos_mission: String(row.discos_mission) } : {}),
+      ...(massNum !== undefined ? { discos_mass_kg: massNum } : {}),
+      ...(row.discos_shape ? { discos_shape: String(row.discos_shape) } : {}),
     };
   });
 }
 
 const BANDS: [number, number, number][] = [
-  [110.0, 125.0, 150],
-  [125.0, 145.0, 80],
-  [145.0, 200.0, 80],
-  [200.0, 380.0, 90],
+  [110.0, 125.0, 320],
+  [125.0, 145.0, 180],
+  [145.0, 200.0, 180],
+  [200.0, 380.0, 220],
 ];
+const FALLBACK_DEBRIS_LIMIT = 900;
 
 type RowWithOrbit = Record<string, string> & { _orbit_r: number };
 
@@ -259,7 +282,7 @@ function buildDebris3d(
 
   let topDeb: RowWithOrbit[] = parts.flat();
   if (topDeb.length === 0) {
-    topDeb = withOrbit.slice(0, 300);
+    topDeb = withOrbit.slice(0, FALLBACK_DEBRIS_LIMIT);
   }
 
   const unique: RowWithOrbit[] = [];
@@ -274,6 +297,12 @@ function buildDebris3d(
     const orbit_r = row._orbit_r;
     let material = String(row.malzeme ?? "Bilinmiyor");
     if (material.length > 60) material = material.slice(0, 57) + "...";
+    const orb = Math.round(parseFloat(row.orbital_risk_skoru ?? "0") * 100) / 100;
+    const massRaw = row.discos_mass_kg;
+    const massNum =
+      massRaw !== undefined && massRaw !== "" && !Number.isNaN(parseFloat(String(massRaw)))
+        ? Math.round(parseFloat(String(massRaw)) * 100) / 100
+        : undefined;
     return {
       id: String(row.cop_parca ?? "DEBRIS"),
       source: String(row.cop_kaynak ?? ""),
@@ -287,6 +316,12 @@ function buildDebris3d(
       inclination: Math.round(parseFloat(row.cop_inclination_deg ?? "0") * 100) / 100,
       eccentricity:
         Math.round(parseFloat(row.cop_eccentricity ?? "0") * 100000) / 100000,
+      orbital_risk: orb,
+      ...(row.discos_object_class
+        ? { discos_object_class: String(row.discos_object_class) }
+        : {}),
+      ...(row.discos_mission ? { discos_mission: String(row.discos_mission) } : {}),
+      ...(massNum !== undefined ? { discos_mass_kg: massNum } : {}),
     };
   });
 }
@@ -353,6 +388,8 @@ function buildPipelineMeta(simul: Record<string, unknown> | null): PipelineMeta 
     return {
       hesap_utc: "N/A",
       model: "N/A",
+      data_profile: "core_only",
+      feature_profile: "core_only",
       n_toplam: 0,
       n_kritik: 0,
       n_yuksek: 0,
@@ -366,6 +403,8 @@ function buildPipelineMeta(simul: Record<string, unknown> | null): PipelineMeta 
   return {
     hesap_utc: hesap.slice(0, 19),
     model: String(meta.model ?? "LightGBM"),
+    data_profile: String(meta.data_profile ?? "core_only"),
+    feature_profile: String(meta.feature_profile ?? "core_only"),
     n_toplam: Number(meta.n_toplam_cift ?? 0),
     n_kritik: Number(riskOzeti.KRITIK ?? 0),
     n_yuksek: Number(riskOzeti.YUKSEK ?? 0),
@@ -399,6 +438,7 @@ export function buildVizPayload(
     "Orbital korelasyon matrisi hesaplandı",
     "Tehdit sıralama ve risk skorlama güncellendi",
     "Yörünge temizleme raporu hazır",
+    `Aktif veri profili: ${pipelineMeta.feature_profile ?? "core_only"}`,
   ];
 
   return {
@@ -408,6 +448,12 @@ export function buildVizPayload(
     pipelineMeta,
     logMessages,
     sidebar,
+    availableProfiles: [
+      "core_only",
+      "core_plus_discos",
+      "core_plus_discos_physical",
+    ],
+    activeProfile: pipelineMeta.feature_profile ?? "core_only",
   };
 }
 

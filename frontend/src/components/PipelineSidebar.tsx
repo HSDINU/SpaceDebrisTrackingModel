@@ -7,6 +7,8 @@ type Props = {
   loadError: boolean;
   onRefresh: () => void;
   refreshing: boolean;
+  /** ML pipeline çalışırken yenileyi kapat (çift tetiklemeyi önler) */
+  pipelineBusy?: boolean;
 };
 
 function ProgressBar({ pct }: { pct: number }) {
@@ -23,7 +25,9 @@ export default function PipelineSidebar({
   loadError,
   onRefresh,
   refreshing,
+  pipelineBusy = false,
 }: Props) {
+  const refreshDisabled = refreshing || pipelineBusy;
   if (loadError) {
     return (
       <div className="ps-inner">
@@ -36,7 +40,7 @@ export default function PipelineSidebar({
           type="button"
           className="ps-refresh"
           onClick={onRefresh}
-          disabled={refreshing}
+          disabled={refreshDisabled}
         >
           🔄 Verileri yenile
         </button>
@@ -64,7 +68,7 @@ export default function PipelineSidebar({
           type="button"
           className="ps-refresh"
           onClick={onRefresh}
-          disabled={refreshing}
+          disabled={refreshDisabled}
         >
           🔄 Verileri yenile
         </button>
@@ -88,9 +92,9 @@ export default function PipelineSidebar({
         type="button"
         className="ps-refresh"
         onClick={onRefresh}
-        disabled={refreshing}
+        disabled={refreshDisabled}
       >
-        {refreshing ? "⏳ Yükleniyor…" : "🔄 Verileri Yenile"}
+        {refreshing || pipelineBusy ? "⏳ Yükleniyor…" : "🔄 Verileri Yenile"}
       </button>
 
       <hr className="ps-rule" />

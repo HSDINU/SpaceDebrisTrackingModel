@@ -37,6 +37,8 @@ export type OrbitSceneHandle = {
   applyVizSettings: (next: Partial<VizSimSettings>) => void;
   triggerScan: () => void;
   getSettingsSnapshot: () => VizSimSettings;
+  /** Kullanıcı katılımı (filtre / skor ağırlığı) — tam sahne kurulumu yapmadan HUD + görünürlük */
+  updateVizData: (next: Pick<VizPayload, "realThreatsData" | "realDebrisData">) => void;
 };
 
 type Conjunction = {
@@ -149,8 +151,8 @@ export function mountOrbitScene(
   /* Sahne nesneleri alt fonksiyonlardan önce atanır; let tercih edilir. */
   /* eslint-disable prefer-const */
   const turkishSatellitesData = data.turkishSatellitesData;
-  const realThreatsData = data.realThreatsData;
-  const realDebrisData = data.realDebrisData;
+  let activeThreatsData = data.realThreatsData;
+  let activeDebrisData = data.realDebrisData;
   const pipelineMeta = data.pipelineMeta;
   const logMessages = data.logMessages;
 
@@ -172,6 +174,9 @@ export function mountOrbitScene(
   /** Tehdit kartları DOM’u saniyede ~60 kez innerHTML ile yenilenmesin (kayma/titreme). */
   let lastThreatPanelsAt = 0;
   const THREAT_PANEL_MS = 320;
+  /** Kullanıcı katılımı slider/filtre — animasyon döngüsünden daha sık güncellenebilir; yine de üst sınır. */
+  let lastUserVizPanelPaint = 0;
+  const USER_VIZ_PANEL_MS = 90;
 
   const appSettings = {
     riskThreshold: 1000,
@@ -313,8 +318,8 @@ export function mountOrbitScene(
       scene.add(sprite);
     });
 
-    if (realDebrisData && realDebrisData.length > 0) {
-      realDebrisData.forEach((deb) => {
+    if (data.realDebrisData && data.realDebrisData.length > 0) {
+      data.realDebrisData.forEach((deb) => {
         const sprite = new THREE.Sprite(debrisMat.clone());
         const baseOrbit = deb.orbit || 120;
         const spreadScale =
@@ -406,6 +411,7 @@ export function mountOrbitScene(
     );
     for (const sat of satelliteSprites) {
       for (const deb of debrisSprites) {
+        if (!deb.visible) continue;
         const dist = sat.position.distanceTo(deb.position);
         if (dist < maxDist) {
           const prob = Math.floor(Math.random() * 20) + 50;
@@ -454,8 +460,8 @@ export function mountOrbitScene(
       trend: string;
     }[] = [];
 
-    if (realThreatsData.length > 0) {
-      realThreatsData.slice(0, 3).forEach((t) => {
+    if (activeThreatsData.length > 0) {
+      activeThreatsData.slice(0, 3).forEach((t) => {
         displayData.push({
           satName: t.hedef_uydu || "UNKNOWN",
           debName: t.yaklasan_cop || "DEBRIS",
@@ -535,9 +541,9 @@ export function mountOrbitScene(
     container.innerHTML = html;
 
     const critPanel = hud.criticalThreatsList;
-    if (critPanel && realThreatsData.length > 0) {
+    if (critPanel && activeThreatsData.length > 0) {
       let critHtml = "";
-      realThreatsData.slice(0, 8).forEach((t) => {
+      activeThreatsData.slice(0, 8).forEach((t) => {
         const lvl = t.risk_seviyesi || "YUKSEK";
         const lvlColor =
           lvl === "KRITIK" ? "#ff0000" : lvl === "YUKSEK" ? "#ff6600" : "#ffaa00";
@@ -575,6 +581,34 @@ export function mountOrbitScene(
   function updateUI() {
     updateConjunctionStrip();
     paintThreatPanels();
+  }
+
+  function syncDebrisVisibility() {
+    if (
+      activeDebrisData.length === 0 &&
+      data.realDebrisData.length === 0 &&
+      debrisSprites.length > 0
+    ) {
+      for (const s of debrisSprites) s.visible = true;
+      return;
+    }
+    const allow = new Set(activeDebrisData.map((d) => d.id));
+    for (const s of debrisSprites) {
+      s.visible = allow.has(String(s.userData.id ?? ""));
+    }
+  }
+
+  function updateVizData(next: Pick<VizPayload, "realThreatsData" | "realDebrisData">) {
+    activeThreatsData = next.realThreatsData;
+    activeDebrisData = next.realDebrisData;
+    syncDebrisVisibility();
+    refreshDebrisScales();
+    updateConjunctionStrip();
+    const now = performance.now();
+    if (now - lastUserVizPanelPaint >= USER_VIZ_PANEL_MS) {
+      lastUserVizPanelPaint = now;
+      paintThreatPanels();
+    }
   }
 
   function showPanel(ud: Record<string, unknown>) {
@@ -774,6 +808,7 @@ export function mountOrbitScene(
   scene.add(new THREE.Mesh(atmoGeom, atmoMat));
 
   createWorldAssets();
+  syncDebrisVisibility();
 
   renderer.domElement.addEventListener("pointerdown", onPointerDown);
 
@@ -929,6 +964,7 @@ export function mountOrbitScene(
     dispose,
     applyVizSettings,
     triggerScan,
+    updateVizData,
     getSettingsSnapshot: () => ({
       riskThreshold: appSettings.riskThreshold,
       debrisSizeMultiplier: appSettings.debrisSizeMultiplier,

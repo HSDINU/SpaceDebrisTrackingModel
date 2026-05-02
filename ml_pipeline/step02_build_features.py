@@ -21,12 +21,14 @@ Kontroller:
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from ml_pipeline.feature_profiles import CORE_ONLY, get_profile_spec, normalize_profile
 
 def project_root() -> Path:
     return Path(__file__).resolve().parent.parent
@@ -55,26 +57,6 @@ CORE_FEATURE_COLS = [
     "sma_diff_km",
 ]
 
-# DISCOS'tan gelen sayısal sütunlar (birleşim yoksa veya NaN ise satır düşmez)
-DISCOS_NUMERIC_FROM_API = [
-    "mass_kg",
-    "length_m",
-    "height_m",
-    "depth_m",
-    "diameter_m",
-    "span_m",
-    "x_sect_max_m2",
-    "x_sect_min_m2",
-    "x_sect_avg_m2",
-    "destination_orbit_count",
-    "dest_sma_m",
-    "dest_inc_deg",
-    "dest_ecc",
-    "dest_raan_deg",
-    "dest_arg_per_deg",
-    "dest_mean_anomaly_deg",
-]
-
 # Target
 TARGET_COL = "mesafe_t24_km"
 
@@ -89,8 +71,11 @@ META_COLS = [
 ]
 
 
-def merge_discos_features(df: pd.DataFrame, root: Path) -> pd.DataFrame:
+def merge_discos_features(df: pd.DataFrame, root: Path, discos_fields: list[str]) -> pd.DataFrame:
     """discos_object_destination_flat.csv ile cop_norad_id üzerinden sol birleşim."""
+    if not discos_fields:
+        print("\nDISCOS profile kapalı (core_only) — birleşim atlandı.")
+        return df
     path = root / "data" / "processed" / "discos_object_destination_flat.csv"
     if not path.exists():
         print(f"\nNOT: DISCOS dosyası yok ({path.name}) — atlanıyor.")
@@ -104,7 +89,7 @@ def merge_discos_features(df: pd.DataFrame, root: Path) -> pd.DataFrame:
         return df
     d = d.sort_values(["norad_id", "destination_orbit_id"], na_position="last")
     d = d.drop_duplicates(subset=["norad_id"], keep="first")
-    take = ["norad_id"] + [c for c in DISCOS_NUMERIC_FROM_API if c in d.columns]
+    take = ["norad_id"] + [c for c in discos_fields if c in d.columns]
     d = d[take].copy()
     for c in d.columns:
         if c == "norad_id":
@@ -123,6 +108,16 @@ def merge_discos_features(df: pd.DataFrame, root: Path) -> pd.DataFrame:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(description="Feature engineering (dinamik profile)")
+    ap.add_argument(
+        "--profile",
+        default=CORE_ONLY,
+        help="Feature profile: core_only | core_plus_discos | core_plus_discos_physical",
+    )
+    args = ap.parse_args()
+    profile = normalize_profile(args.profile)
+    spec = get_profile_spec(profile)
+
     root = project_root()
     in_path = root / "data" / "processed" / "encounters_24h.csv"
     out_path = root / "data" / "processed" / "ml_features_24h.csv"
@@ -131,6 +126,7 @@ def main() -> int:
     print("=" * 60)
     print("Adım 2 — Feature Engineering (24h Tahmin)")
     print("=" * 60)
+    print(f"Profile: {spec.profile}")
 
     if not in_path.exists():
         print(f"HATA: {in_path} bulunamadı.")
@@ -140,7 +136,7 @@ def main() -> int:
     df = pd.read_csv(in_path, encoding="utf-8-sig")
     print(f"Kaynak: {len(df):,} satır | {len(df.columns)} sütun")
 
-    df = merge_discos_features(df, root)
+    df = merge_discos_features(df, root, spec.discos_features)
 
     # --- Mevcut feature'ları kontrol et ---
     available_core = [c for c in CORE_FEATURE_COLS if c in df.columns]
@@ -152,7 +148,12 @@ def main() -> int:
         print(f"HATA: Target sütun '{TARGET_COL}' bulunamadı.")
         return 1
 
-    discos_feat = [c for c in df.columns if c.startswith("discos_")]
+    discos_feat = [
+        c
+        for c in df.columns
+        if c.startswith("discos_")
+        and c.replace("discos_", "", 1) in set(spec.discos_features)
+    ]
     print(f"Çekirdek feature: {len(available_core)} | DISCOS (sayısal): {len(discos_feat)}")
     print(f"Target: {TARGET_COL}")
 
@@ -239,8 +240,8 @@ def main() -> int:
     for mc in META_COLS:
         if mc in df.columns:
             output_cols.append(mc)
-
     df_out = df[output_cols].copy()
+    df_out["feature_profile"] = spec.profile
     df_out.to_csv(out_path, index=False, encoding="utf-8-sig")
 
     print(f"\n{'=' * 60}")

@@ -22,6 +22,7 @@ Baseline : Naive persistence (mesafe_t24 ≈ mesafe_t0)
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -33,6 +34,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold, KFold, cross_val_score, train_test_split
 
 from ml_pipeline.model_artifact import save_training_artifact
+from ml_pipeline.feature_profiles import CORE_ONLY, get_profile_spec, normalize_profile
 from ml_pipeline.pretrain_eda import run_eda_after_split
 from ml_pipeline.training_split import replicate_training_split
 
@@ -59,16 +61,27 @@ def project_root() -> Path:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(description="LightGBM trainer (profile-aware)")
+    ap.add_argument(
+        "--profile",
+        default=CORE_ONLY,
+        help="Feature profile: core_only | core_plus_discos | core_plus_discos_physical",
+    )
+    args = ap.parse_args()
+    profile = normalize_profile(args.profile)
+    _ = get_profile_spec(profile)
+
     if lgb is None:
         raise SystemExit("lightgbm gerekli: pip install lightgbm")
 
     root = project_root()
     feat_path = root / "data" / "processed" / "ml_features_24h.csv"
-    report_path = root / "data" / "processed" / "ml_step03_report.json"
+    report_path = root / "data" / "processed" / f"ml_step03_report__{profile}.json"
 
     print("=" * 60)
     print("Adım 3 — LightGBM 24h Regression (Gerçek Tahmin)")
     print("=" * 60)
+    print(f"Profile: {profile}")
 
     if not feat_path.exists():
         print(f"EKSİK: {feat_path}")
@@ -268,12 +281,17 @@ def main() -> int:
     # ════════════════════════════════════════════
     # KAYDET (model + tahminde kullanılacak sütun sırası)
     # ════════════════════════════════════════════
-    out_model = root / "lightgbm_risk_modeli.pkl"
+    out_model = root / f"lightgbm_risk_modeli__{profile}.pkl"
     save_training_artifact(out_model, model, feature_cols, TARGET)
     print(f"\nModel (artifact): {out_model}")
+    if profile == CORE_ONLY:
+        legacy_model = root / "lightgbm_risk_modeli.pkl"
+        save_training_artifact(legacy_model, model, feature_cols, TARGET)
+        print(f"Legacy model de güncellendi: {legacy_model}")
 
     report = {
         "model_type": "LightGBM Regression (24h Distance Prediction)",
+        "feature_profile": profile,
         "artifact_schema_version": 1,
         "n_total": int(len(df)),
         "n_train": int(len(X_train)),
@@ -324,6 +342,11 @@ def main() -> int:
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
     print(f"Rapor: {report_path}")
+    if profile == CORE_ONLY:
+        legacy_report = root / "data" / "processed" / "ml_step03_report.json"
+        with open(legacy_report, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+        print(f"Legacy rapor da güncellendi: {legacy_report}")
     print("=" * 60)
     return 0
 

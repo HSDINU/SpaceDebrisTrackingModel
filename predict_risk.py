@@ -20,6 +20,7 @@ Risk sıralama:
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from datetime import datetime, timezone
@@ -29,12 +30,11 @@ import numpy as np
 import pandas as pd
 
 from ml_pipeline.model_artifact import load_predictor
+from ml_pipeline.feature_profiles import CORE_ONLY, get_profile_spec, normalize_profile
 
 ROOT = Path(__file__).resolve().parent
-MODEL_PATH = ROOT / "lightgbm_risk_modeli.pkl"
 FEAT_PATH = ROOT / "data" / "processed" / "ml_features_24h.csv"
 ENC_PATH = ROOT / "data" / "processed" / "encounters_24h.csv"
-REPORT_PATH = ROOT / "data" / "processed" / "ml_step03_report.json"
 
 OUT_DIR = ROOT / "data" / "output"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -141,17 +141,93 @@ def risk_sinifi(dist_km: float) -> str:
     return "DUSUK"
 
 
+def merge_discos_from_cleaned(out: pd.DataFrame, root: Path) -> pd.DataFrame:
+    """cop_verileri_cleaned_discos.csv ile isim+kaynak üzerinden DISCOS alanları."""
+    p = root / "data" / "processed" / "cop_verileri_cleaned_discos.csv"
+    if not p.exists():
+        return out
+    try:
+        cd = pd.read_csv(p, encoding="utf-8-sig")
+    except OSError:
+        return out
+    if "isim" not in cd.columns or "kaynak" not in cd.columns:
+        return out
+    want = [
+        "isim",
+        "kaynak",
+        "norad_id",
+        "discos_object_class",
+        "discos_mission",
+        "discos_mass_kg",
+        "discos_shape",
+    ]
+    take = [c for c in want if c in cd.columns]
+    lu = cd[take].drop_duplicates(subset=["isim", "kaynak"], keep="first")
+    merged = out.merge(
+        lu,
+        left_on=["cop_parca", "cop_kaynak"],
+        right_on=["isim", "kaynak"],
+        how="left",
+    )
+    drop_me = [c for c in ("isim", "kaynak") if c in merged.columns]
+    if drop_me:
+        merged = merged.drop(columns=drop_me)
+    if "norad_id" in merged.columns:
+        merged = merged.rename(columns={"norad_id": "cop_norad_id"})
+    return merged
+
+
 def main() -> int:
+    ap = argparse.ArgumentParser(description="Risk tahmini (profile-aware)")
+    ap.add_argument(
+        "--profile",
+        default=CORE_ONLY,
+        help="Feature profile: core_only | core_plus_discos | core_plus_discos_physical",
+    )
+    ap.add_argument(
+        "--orbital-weight",
+        type=float,
+        default=1.0,
+        help="Orbital risk ağırlığı (bilesik_risk_skoru için)",
+    )
+    ap.add_argument(
+        "--material-weight",
+        type=float,
+        default=1.0,
+        help="Malzeme/yere düşme risk ağırlığı (bilesik_risk_skoru için)",
+    )
+    args = ap.parse_args()
+    requested_profile = normalize_profile(args.profile)
+    _ = get_profile_spec(requested_profile)
+    orbital_w = max(0.05, float(args.orbital_weight))
+    material_w = max(0.05, float(args.material_weight))
+
     print("=" * 65)
     print("🛰️  Risk Tahmin Motoru — Simülasyon Çıktısı")
     print("=" * 65)
+    print(f"İstenen profile: {requested_profile}")
+    print(f"Risk ağırlıkları: orbital={orbital_w:.2f} | material={material_w:.2f}")
 
     # --- Model yükle ---
-    if not MODEL_PATH.exists():
-        print(f"HATA: Model bulunamadı → {MODEL_PATH}")
-        print("Önce: python -m ml_pipeline.step03_train_baseline")
+    selected_profile = requested_profile
+    model_path = ROOT / f"lightgbm_risk_modeli__{selected_profile}.pkl"
+    report_path = ROOT / "data" / "processed" / f"ml_step03_report__{selected_profile}.json"
+    if not model_path.exists() and requested_profile != CORE_ONLY:
+        print(f"UYARI: {requested_profile} modeli yok, core_only fallback kullanılacak.")
+        selected_profile = CORE_ONLY
+        model_path = ROOT / f"lightgbm_risk_modeli__{selected_profile}.pkl"
+        report_path = ROOT / "data" / "processed" / f"ml_step03_report__{selected_profile}.json"
+    if not model_path.exists() and selected_profile == CORE_ONLY:
+        legacy = ROOT / "lightgbm_risk_modeli.pkl"
+        if legacy.exists():
+            model_path = legacy
+            report_path = ROOT / "data" / "processed" / "ml_step03_report.json"
+    if not model_path.exists():
+        print(f"HATA: Model bulunamadı → {model_path}")
+        print("Önce: python -m ml_pipeline.step03_train_baseline --profile <profile>")
         return 1
-    model, feature_cols = load_predictor(MODEL_PATH, REPORT_PATH)
+    model, feature_cols = load_predictor(model_path, report_path)
+    print(f"Aktif profile: {selected_profile}")
 
     # --- Feature ve encounter verileri ---
     if not FEAT_PATH.exists() or not ENC_PATH.exists():
@@ -213,12 +289,15 @@ def main() -> int:
     out["yanma_orani"]           = [r["atmosferde_yanma_orani"] for r in malzeme_rows]
     out["yere_dusme_riski"]      = [r["yere_dusme_riski_skoru"] for r in malzeme_rows]
 
-    # Bileşik risk skoru = orbital_risk × yere_dusme_riski
+    # Bileşik risk skoru = ağırlıklı ortalama (orbital vs material)
     # Yorumlama: 1.0 = maksimum tehlike, 0.0 = minimum
     out["orbital_risk_skoru"]    = [orbital_risk_skoru(d) for d in tahmin_t24]
     out["bilesik_risk_skoru"]    = (
-        out["orbital_risk_skoru"] * out["yere_dusme_riski"]
+        (orbital_w * out["orbital_risk_skoru"] + material_w * out["yere_dusme_riski"])
+        / (orbital_w + material_w)
     ).round(4)
+
+    out = merge_discos_from_cleaned(out, ROOT)
 
     # Risk sınıfı
     out["risk_sinifi"]        = [risk_sinifi(d) for d in tahmin_t24]
@@ -302,6 +381,12 @@ def main() -> int:
             "hesap_utc": now,
             "model": "LightGBM 24h Mesafe Tahmini",
             "n_toplam_cift": int(len(out)),
+            "data_profile": requested_profile,
+            "feature_profile": selected_profile,
+            "risk_weights": {
+                "orbital": round(orbital_w, 4),
+                "material": round(material_w, 4),
+            },
         },
         "risk_ozeti": {
             sinif: int(dist.get(sinif, 0))
@@ -346,6 +431,30 @@ def main() -> int:
             entry["cop_inclination_deg"] = float(row["cop_inclination_deg"])
         if "cop_eccentricity" in row:
             entry["cop_eccentricity"] = float(row["cop_eccentricity"])
+        for col in (
+            "cop_norad_id",
+            "discos_object_class",
+            "discos_mission",
+            "discos_mass_kg",
+            "discos_shape",
+        ):
+            if col not in row.index:
+                continue
+            v = row[col]
+            if pd.isna(v):
+                continue
+            if col == "cop_norad_id":
+                try:
+                    entry[col] = int(v)
+                except (ValueError, TypeError):
+                    entry[col] = str(v)
+            elif col == "discos_mass_kg":
+                try:
+                    entry[col] = float(v)
+                except (ValueError, TypeError):
+                    entry[col] = str(v)
+            else:
+                entry[col] = str(v)
         simul_data["kritik_ciftler"].append(entry)
 
 
@@ -355,8 +464,8 @@ def main() -> int:
     print(f"\n✅ Simülasyon JSON → {simul_json}")
 
     # --- Model bilgisi ---
-    if REPORT_PATH.exists():
-        with open(REPORT_PATH, encoding="utf-8") as f:
+    if report_path.exists():
+        with open(report_path, encoding="utf-8") as f:
             rpt = json.load(f)
         lgb = rpt.get("lightgbm", {})
         print(f"\n{'─' * 65}")

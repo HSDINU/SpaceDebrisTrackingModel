@@ -11,13 +11,20 @@ import {
 } from "react";
 import { HudScanIcon, HudSettingsIcon } from "@/components/HudHeaderIcons";
 import PipelineSidebar from "@/components/PipelineSidebar";
+import UserParticipationPanel from "@/components/UserParticipationPanel";
 import { FALLBACK_VIZ_PAYLOAD } from "@/lib/buildVizPayload";
 import {
   mountOrbitScene,
   type OrbitSceneHandle,
   type VizSimSettings,
 } from "@/lib/orbitEngine";
-import type { VizPayload } from "@/lib/vizTypes";
+import type { ThreatRecord, VizPayload } from "@/lib/vizTypes";
+import {
+  applyUserVizTransforms,
+  buildFilterOptionsFromPayload,
+  DEFAULT_EXPERIMENT_WEIGHTS,
+  DEFAULT_USER_DATA_FILTERS,
+} from "@/lib/vizUserTransforms";
 
 const DEFAULT_VIZ_SETTINGS: VizSimSettings = {
   riskThreshold: 1000,
@@ -32,12 +39,24 @@ export default function OrbitDashboard() {
   const rootRef = useRef<HTMLDivElement>(null);
   const selectionPanelRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<OrbitSceneHandle | null>(null);
+  const didInitWeightsSyncRef = useRef(false);
+  const pipelineRunningRef = useRef(false);
   const [payload, setPayload] = useState<VizPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [pipelineDrawerOpen, setPipelineDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [vizForm, setVizForm] = useState<VizSimSettings>(DEFAULT_VIZ_SETTINGS);
+  const [selectedProfile, setSelectedProfile] = useState("core_only");
+  const [pipelineRunning, setPipelineRunning] = useState(false);
+  const [pipelineMsg, setPipelineMsg] = useState<string | null>(null);
+  const [expDraft, setExpDraft] = useState(DEFAULT_EXPERIMENT_WEIGHTS);
+  const [dataFilters, setDataFilters] = useState(DEFAULT_USER_DATA_FILTERS);
+  const [feedbackBusyId, setFeedbackBusyId] = useState<string | null>(null);
+  const [bottomThreatsOpen, setBottomThreatsOpen] = useState(true);
+
+  useEffect(() => {
+    pipelineRunningRef.current = pipelineRunning;
+  }, [pipelineRunning]);
 
   const fetchVizData = useCallback(
     (opts?: { signal?: AbortSignal; force?: boolean }) => {
@@ -75,10 +94,69 @@ export default function OrbitDashboard() {
     return () => ac.abort();
   }, [fetchVizData]);
 
+  useEffect(() => {
+    if (!payload?.activeProfile) return;
+    setSelectedProfile(payload.activeProfile);
+  }, [payload?.activeProfile]);
+
+  const runPipelineWithProfile = useCallback(
+    async (opts?: {
+      train?: boolean;
+      predictOnly?: boolean;
+      source?: "scan" | "weights" | "manual" | "refresh";
+    }) => {
+      if (pipelineRunningRef.current) return;
+      const train = Boolean(opts?.train);
+      const predictOnly = Boolean(opts?.predictOnly);
+      setPipelineRunning(true);
+      setPipelineMsg(null);
+      try {
+        const r = await fetch("/api/pipeline/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            profile: selectedProfile,
+            train,
+            predictOnly,
+            orbitalWeight: expDraft.orbital,
+            materialWeight: expDraft.material,
+          }),
+        });
+        const res = (await r.json()) as {
+          ok?: boolean;
+          activeProfile?: string;
+          failedStep?: string;
+        };
+        if (!r.ok || !res.ok) {
+          const failed = res.failedStep ? ` (${res.failedStep})` : "";
+          throw new Error(`Pipeline çalışmadı${failed}`);
+        }
+        const modeLabel = predictOnly
+          ? opts?.source === "scan"
+            ? "Tarama + tahmin"
+            : opts?.source === "refresh"
+              ? "Yenile (tahmin)"
+              : "Ağırlıklı tahmin"
+          : train
+            ? "Feature + train + predict"
+            : "Feature + predict";
+        setPipelineMsg(`${modeLabel} tamamlandı — profile: ${res.activeProfile ?? selectedProfile}`);
+        await fetchVizData({ force: true });
+      } catch {
+        setPipelineMsg("Pipeline tetiklenemedi. API loglarını kontrol edin.");
+      } finally {
+        setPipelineRunning(false);
+      }
+    },
+    [expDraft.material, expDraft.orbital, fetchVizData, selectedProfile],
+  );
+
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    void fetchVizData({ force: true }).finally(() => setRefreshing(false));
-  }, [fetchVizData]);
+    void runPipelineWithProfile({ predictOnly: true, source: "refresh" }).finally(() =>
+      setRefreshing(false),
+    );
+  }, [runPipelineWithProfile]);
 
   /** Aynı kalırsa Three.js sahnesi yeniden kurulmaz (takılma azalır). */
   const sceneDataRevision = useMemo(() => {
@@ -89,15 +167,42 @@ export default function OrbitDashboard() {
     );
   }, [payload]);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1101px)");
-    const close = () => {
-      if (mq.matches) setPipelineDrawerOpen(false);
-    };
-    mq.addEventListener("change", close);
-    close();
-    return () => mq.removeEventListener("change", close);
-  }, []);
+  const displayPayload = useMemo(
+    () =>
+      applyUserVizTransforms(
+        payload ?? FALLBACK_VIZ_PAYLOAD,
+        expDraft,
+        dataFilters,
+      ),
+    [payload, expDraft, dataFilters],
+  );
+
+  const filterOptions = useMemo(
+    () => buildFilterOptionsFromPayload(payload ?? FALLBACK_VIZ_PAYLOAD),
+    [payload],
+  );
+
+  const baseVizPayload = payload ?? FALLBACK_VIZ_PAYLOAD;
+
+  const sendThreatFeedback = useCallback(
+    async (vote: "up" | "down", threat: ThreatRecord) => {
+      setFeedbackBusyId(threat.pair_id);
+      try {
+        await fetch("/api/user-feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            vote,
+            threat,
+            hesap_utc: payload?.pipelineMeta.hesap_utc,
+          }),
+        });
+      } finally {
+        setFeedbackBusyId(null);
+      }
+    },
+    [payload?.pipelineMeta.hesap_utc],
+  );
 
   useEffect(() => {
     if (!settingsOpen) return;
@@ -109,11 +214,9 @@ export default function OrbitDashboard() {
   }, [settingsOpen]);
 
   /** İki rAF: layout ölçümü (orbit-host yüksekliği) kesinleşsin; Strict Mode'da cleanup güvenli olsun.
-   *  Bağımlılık: yalnızca `sceneDataRevision` — veri dosyaları değişmedikçe sahne dispose edilmez. */
+   *  Yalnızca sunucu verisi (`sceneDataRevision`) değişince tam kurulum; kullanıcı katılımı `updateVizData` ile. */
   useLayoutEffect(() => {
     if (!rootRef.current) return;
-
-    const vizData = payload ?? FALLBACK_VIZ_PAYLOAD;
 
     let cancelled = false;
     let dispose: (() => void) | undefined;
@@ -189,10 +292,14 @@ export default function OrbitDashboard() {
             initLogMsg,
             riskThresholdDisplay,
           },
-          vizData,
+          baseVizPayload,
         );
         sceneRef.current = scene;
         dispose = scene.dispose;
+        scene.updateVizData({
+          realThreatsData: displayPayload.realThreatsData,
+          realDebrisData: displayPayload.realDebrisData,
+        });
       });
     });
 
@@ -203,14 +310,38 @@ export default function OrbitDashboard() {
       dispose?.();
       sceneRef.current = null;
     };
-    // payload bu effect içinde yalnızca revision değiştiği render anındaki değeri kullanır
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sahne yalnızca sceneDataRevision değişince kurulur
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tam kurulum yalnızca sunucu rev.; displayPayload aynı rev. anında senkron
   }, [sceneDataRevision]);
+
+  useEffect(() => {
+    let raf = 0;
+    raf = requestAnimationFrame(() => {
+      sceneRef.current?.updateVizData({
+        realThreatsData: displayPayload.realThreatsData,
+        realDebrisData: displayPayload.realDebrisData,
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [displayPayload]);
 
   const metaChip =
     payload != null
       ? `ML→ YÜKSEK: ${payload.pipelineMeta.n_yuksek.toLocaleString()} | KRİTİK: ${payload.pipelineMeta.n_kritik.toLocaleString()}`
       : "…";
+
+  useEffect(() => {
+    if (!didInitWeightsSyncRef.current) {
+      didInitWeightsSyncRef.current = true;
+      return;
+    }
+    const t = window.setTimeout(() => {
+      void runPipelineWithProfile({
+        predictOnly: true,
+        source: "weights",
+      });
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [expDraft.orbital, expDraft.material, runPipelineWithProfile]);
 
   return (
     <div ref={rootRef} className="hud-root">
@@ -226,15 +357,6 @@ export default function OrbitDashboard() {
       <header className="hud-header">
         <div className="hud-header-row">
           <div className="hud-title-wrap">
-            <button
-              type="button"
-              className="hud-icon-btn"
-              aria-label="Pipeline sidebar"
-              aria-expanded={pipelineDrawerOpen}
-              onClick={() => setPipelineDrawerOpen((o) => !o)}
-            >
-              ☰
-            </button>
             <h1 className="hud-title">YÖRÜNGE MUHAFIZI</h1>
             <span className="hud-subtitle">YÖRÜNGE ANALİZİ</span>
           </div>
@@ -244,7 +366,13 @@ export default function OrbitDashboard() {
               className="hud-header-tool"
               title="Yeni tarama"
               aria-label="Yeni tarama"
-              onClick={() => sceneRef.current?.triggerScan()}
+              onClick={() => {
+                sceneRef.current?.triggerScan();
+                void runPipelineWithProfile({
+                  predictOnly: true,
+                  source: "scan",
+                });
+              }}
             >
               <HudScanIcon className="hud-header-tool-svg" />
             </button>
@@ -268,6 +396,42 @@ export default function OrbitDashboard() {
         <div id="conjunction-count" className="hud-chip hud-status-strip">
           {loadError ? "VERİ HATASI" : metaChip}
         </div>
+        <div className="hud-chip hud-status-strip" style={{ display: "flex", gap: 8 }}>
+          <label htmlFor="profile-select">Veri tipi:</label>
+          <select
+            id="profile-select"
+            value={selectedProfile}
+            onChange={(e) => setSelectedProfile(e.target.value)}
+            disabled={pipelineRunning}
+          >
+            <option value="core_only">core_only</option>
+            <option value="core_plus_discos">core_plus_discos</option>
+            <option value="core_plus_discos_physical">core_plus_discos_physical</option>
+          </select>
+          <button
+            type="button"
+            className="hud-icon-btn"
+            onClick={() => void runPipelineWithProfile({ train: false, source: "manual" })}
+            disabled={pipelineRunning}
+            title="Feature + predict çalıştır"
+          >
+            {pipelineRunning ? "Çalışıyor..." : "Uygula"}
+          </button>
+          <button
+            type="button"
+            className="hud-icon-btn"
+            onClick={() => void runPipelineWithProfile({ train: true, source: "manual" })}
+            disabled={pipelineRunning}
+            title="Feature + train + predict çalıştır"
+          >
+            Yeniden Eğit
+          </button>
+        </div>
+        {pipelineMsg ? (
+          <div className="hud-chip hud-status-strip" role="status">
+            {pipelineMsg}
+          </div>
+        ) : null}
       </header>
 
       <aside className="left-rail">
@@ -282,27 +446,57 @@ export default function OrbitDashboard() {
         </div>
       </aside>
 
-      <button
-        type="button"
-        className={`pipeline-sidebar-backdrop${pipelineDrawerOpen ? " is-visible" : ""}`}
-        aria-label="Sidebar kapat"
-        onClick={() => setPipelineDrawerOpen(false)}
-      />
-
       <main className="hud-main">
-        <aside
-          className={`pipeline-sidebar${pipelineDrawerOpen ? " is-drawer-open" : ""}`}
-        >
+        <div className="hud-main-grid">
+        <aside className="pipeline-sidebar pipeline-sidebar--inline">
           <PipelineSidebar
             sidebar={payload?.sidebar ?? null}
             loadError={loadError != null}
             onRefresh={handleRefresh}
             refreshing={refreshing}
+            pipelineBusy={pipelineRunning}
           />
         </aside>
 
-        <div className="hud-main-body">
-          <section className="left-panel">
+        <div className="hud-main-stage">
+          <section className="scene-area scene-area--main-stage">
+            <div data-orbit-host className="orbit-host"></div>
+
+            <div className="hud-bottom-threats">
+              <button
+                type="button"
+                className="hud-bottom-threats-toggle"
+                aria-expanded={bottomThreatsOpen}
+                onClick={() => setBottomThreatsOpen((o) => !o)}
+              >
+                {bottomThreatsOpen ? "▼ Tehdit kartlarını gizle" : "▲ Tehdit kartlarını göster"}
+              </button>
+              <div
+                className={`threat-row-wrap${bottomThreatsOpen ? "" : " is-collapsed"}`}
+                aria-hidden={!bottomThreatsOpen}
+              >
+                <div id="radar-windows" className="threat-row" />
+              </div>
+              <div className="bottom-status">
+                <span>KAMERA: WASD + FARE</span>
+                <span>
+                  TOPLAM ÇİFT:{" "}
+                  <span id="total-pairs-display">
+                    {payload?.pipelineMeta.n_toplam.toLocaleString() ?? "—"}
+                  </span>
+                </span>
+                <span>
+                  YÜKSEK EŞİK:{" "}
+                  <span id="risk-threshold-display">1,000 KM</span>
+                </span>
+                <span id="fps-display">60 FPS</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside className="hud-tools-column">
+          <div className="hud-tools-inner-scroll left-panel">
             <div className="panel-card">
               <div className="panel-heading">
                 <div className="panel-title">SİSTEM KAYDI</div>
@@ -320,6 +514,19 @@ export default function OrbitDashboard() {
               </div>
             </div>
 
+            <UserParticipationPanel
+              threats={displayPayload.realThreatsData}
+              experiment={expDraft}
+              onExperimentChange={setExpDraft}
+              filters={dataFilters}
+              onFiltersChange={(next) =>
+                startTransition(() => setDataFilters(next))
+              }
+              filterOptions={filterOptions}
+              onFeedback={sendThreatFeedback}
+              feedbackBusyId={feedbackBusyId}
+            />
+
             <div className="panel-card grow-card">
               <div className="panel-title danger">KRİTİK SEKTÖR</div>
               <div
@@ -329,30 +536,8 @@ export default function OrbitDashboard() {
                 <p className="critical-placeholder">Tehdit verisi yükleniyor...</p>
               </div>
             </div>
-          </section>
-
-          <section className="scene-area">
-            <div data-orbit-host className="orbit-host"></div>
-
-            <div className="threat-row-wrap">
-              <div id="radar-windows" className="threat-row" />
-            </div>
-
-            <div className="bottom-status">
-              <span>KAMERA: WASD + FARE</span>
-              <span>
-                TOPLAM ÇİFT:{" "}
-                <span id="total-pairs-display">
-                  {payload?.pipelineMeta.n_toplam.toLocaleString() ?? "—"}
-                </span>
-              </span>
-              <span>
-                YÜKSEK EŞİK:{" "}
-                <span id="risk-threshold-display">1,000 KM</span>
-              </span>
-              <span id="fps-display">60 FPS</span>
-            </div>
-          </section>
+          </div>
+        </aside>
         </div>
       </main>
 

@@ -11,6 +11,7 @@ export type SatelliteRecord = {
 };
 
 export type ThreatRecord = {
+  pair_id: string;
   hedef_uydu: string;
   yaklasan_cop: string;
   minimum_mesafe_km: number;
@@ -27,6 +28,11 @@ export type ThreatRecord = {
   orbital_risk: number;
   egim: number;
   eksantrisite: number;
+  cop_norad_id?: number;
+  discos_object_class?: string;
+  discos_mission?: string;
+  discos_mass_kg?: number;
+  discos_shape?: string;
 };
 
 export type DebrisRecord = {
@@ -41,11 +47,17 @@ export type DebrisRecord = {
   risk_class: string;
   inclination: number;
   eccentricity: number;
+  orbital_risk?: number;
+  discos_object_class?: string;
+  discos_mission?: string;
+  discos_mass_kg?: number;
 };
 
 export type PipelineMeta = {
   hesap_utc: string;
   model: string;
+  data_profile?: string;
+  feature_profile?: string;
   n_toplam: number;
   n_kritik: number;
   n_yuksek: number;
@@ -85,6 +97,8 @@ export type VizPayload = {
   pipelineMeta: PipelineMeta;
   logMessages: string[];
   sidebar: SidebarPayload;
+  availableProfiles?: string[];
+  activeProfile?: string;
   /**
    * Kaynak dosya imzası (mtime+size). Aynı kalırsa 3D sahne yeniden kurulmaz;
    * API her yanıtta döner.
