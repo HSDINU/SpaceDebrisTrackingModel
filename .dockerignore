@@ -19,7 +19,7 @@ venv/
 env/
 ENV/
 
-# Next.js frontend (Streamlit imajında kullanılmaz; bağlam boyutunu düşürür)
+# Next.js derleme bağlamı: kaynak gelir, node_modules/.next CI'da üretilir
 frontend/node_modules/
 frontend/.next/
 frontend/out/

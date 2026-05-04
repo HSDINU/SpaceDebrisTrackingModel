@@ -1,13 +1,12 @@
-# Çok aşamalı imaj: Cloud Run / docker compose → runtime hedefi
+# Çok aşamalı imaj: Cloud Run → Next.js (frontend/) + Python ML pipeline
 #   docker build --target runtime -t TAG .
-# Yerel pipeline profili de runtime kullanır (kaynak kod builder'da yoktur).
-
-# ── Build aşaması (yalnızca pip bağımlılıkları) ────────────────────────────
-FROM python:3.11-slim AS builder
+# Çalışma dizini: Node server /app/frontend → process.cwd()/.. = /app (REPO_ROOT).
+#
+# ── Python bağımlılıkları ───────────────────────────────────────────────────
+FROM python:3.11-slim AS py-builder
 
 WORKDIR /app
 
-# Sistem bağımlılıkları (LightGBM derleme için libgomp)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgomp1 \
     && rm -rf /var/lib/apt/lists/*
@@ -16,42 +15,49 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir -r requirements.txt
 
-# ── Çalışma aşaması ─────────────────────────────────────────────────────────
+# ── Next.js üretim derlemesi ─────────────────────────────────────────────────
+FROM node:20-bookworm-slim AS frontend-builder
+
+WORKDIR /app/frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/ ./
+RUN npm run build
+
+# ── Çalışma: Python + Node (standalone server) ─────────────────────────────
 FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
-# Sadece runtime bağımlılığı (LightGBM OpenMP)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgomp1 \
+        curl \
+        ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Python paketlerini builder'dan kopyala
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=py-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=py-builder /usr/local/bin /usr/local/bin
 
-# Uygulama kaynak kodunu kopyala
-# Not: data/ klasörü .dockerignore'da dahil edilmiş; eğer model + çıktılar
-#      image içinde olmasın istiyorsanız volume mount kullanın (docker-compose.yml).
-COPY . .
+COPY . /app/
 
-# Streamlit port
-EXPOSE 8501
+WORKDIR /app/frontend
+RUN rm -rf .next node_modules
 
-# Sağlık kontrolü
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" \
-    || exit 1
+COPY --from=frontend-builder /app/frontend/.next/standalone ./
+COPY --from=frontend-builder /app/frontend/.next/static ./.next/static
+COPY --from=frontend-builder /app/frontend/public ./public
 
-# Streamlit yapılandırması (sunucu tarafı)
-ENV STREAMLIT_SERVER_PORT=8501 \
-    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
-    STREAMLIT_SERVER_HEADLESS=true \
-    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false \
-    PYTHONUNBUFFERED=1
+ENV NODE_ENV=production \
+    PYTHONUNBUFFERED=1 \
+    HOSTNAME=0.0.0.0
 
-ENTRYPOINT ["streamlit", "run", "app.py", \
-            "--server.port=8501", \
-            "--server.address=0.0.0.0", \
-            "--server.headless=true", \
-            "--browser.gatherUsageStats=false"]
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD sh -c 'curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" >/dev/null || exit 1'
+
+CMD ["sh", "-c", "exec node server.js"]

@@ -123,18 +123,19 @@ if [[ "${SKIP_DEPLOY:-}" != "1" ]]; then
   # ── 9. Cloud Run'a deploy et ─────────────────────────────────
   echo ""
   echo -e "${CYAN}=== 9. Google Cloud Run'a deploy ediliyor ===${NC}"
+  # Next.js `server.js` Cloud Run'un verdiği PORT üzerinden dinler (varsayılan 8080).
+  # Yayın URL'si yine https://... — tarayıcıda 3000/8081 görünmez; yalnızca konteyner içi port.
   gcloud run deploy "$SERVICE_NAME" \
       --image="$FULL_IMAGE" \
       --platform=managed \
       --region="$REGION" \
-      --port=8501 \
+      --port=8080 \
       --memory=2Gi \
       --cpu=1 \
       --timeout=3600 \
       --min-instances=0 \
       --max-instances=1 \
       --allow-unauthenticated \
-      --set-env-vars="STREAMLIT_SERVER_PORT=8501,STREAMLIT_SERVER_ADDRESS=0.0.0.0,STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_BROWSER_GATHER_USAGE_STATS=false" \
       --quiet
 
   # ── 10. Public URL al ────────────────────────────────────────
