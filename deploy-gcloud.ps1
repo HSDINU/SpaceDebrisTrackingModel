@@ -1,3 +1,8 @@
+param(
+    # Yalnızca Docker build + Artifact Registry push; Cloud Run güncellenmez
+    [switch]$SkipDeploy
+)
+
 # ============================================================
 #  Yörünge Muhafızı — Google Cloud Run Deployment Scripti
 #  Maliyet: ~$0/gün (Free Tier) veya ~$1-2/gün (min-instances:1)
@@ -5,7 +10,8 @@
 # Ön koşul: Google Cloud SDK kurulu olmalı
 #   https://cloud.google.com/sdk/docs/install
 # Çalıştırmadan önce: gcloud auth login
-# Sonra: .\deploy-gcloud.ps1
+# Tam akış:  .\deploy-gcloud.ps1
+# Sadece build + push: .\deploy-gcloud.ps1 -SkipDeploy
 # ============================================================
 
 # ── YAPILANDIRMA (değiştir) ──────────────────────────────────
@@ -93,40 +99,51 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# ── 8. Cloud Run'a deploy et ─────────────────────────────────
-Write-Host ""
-Write-Host "=== 8. Google Cloud Run'a deploy ediliyor ===" -ForegroundColor Cyan
-gcloud run deploy $SERVICE_NAME `
-    --image=$FULL_IMAGE `
-    --platform=managed `
-    --region=$REGION `
-    --port=8501 `
-    --memory=2Gi `
-    --cpu=1 `
-    --timeout=3600 `
-    --min-instances=0 `
-    --max-instances=1 `
-    --allow-unauthenticated `
-    --set-env-vars="STREAMLIT_SERVER_PORT=8501,STREAMLIT_SERVER_ADDRESS=0.0.0.0,STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_BROWSER_GATHER_USAGE_STATS=false" `
-    --quiet
+if (-not $SkipDeploy) {
+    # ── 8. Cloud Run'a deploy et ─────────────────────────────────
+    Write-Host ""
+    Write-Host "=== 8. Google Cloud Run'a deploy ediliyor ===" -ForegroundColor Cyan
+    gcloud run deploy $SERVICE_NAME `
+        --image=$FULL_IMAGE `
+        --platform=managed `
+        --region=$REGION `
+        --port=8501 `
+        --memory=2Gi `
+        --cpu=1 `
+        --timeout=3600 `
+        --min-instances=0 `
+        --max-instances=1 `
+        --allow-unauthenticated `
+        --set-env-vars="STREAMLIT_SERVER_PORT=8501,STREAMLIT_SERVER_ADDRESS=0.0.0.0,STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_BROWSER_GATHER_USAGE_STATS=false" `
+        --quiet
 
-# ── 9. Public URL al ─────────────────────────────────────────
-Write-Host ""
-Write-Host "=== 9. Public URL alınıyor ===" -ForegroundColor Cyan
-$SERVICE_URL = gcloud run services describe $SERVICE_NAME `
-    --platform=managed `
-    --region=$REGION `
-    --format="value(status.url)" 2>$null
+    # ── 9. Public URL al ─────────────────────────────────────────
+    Write-Host ""
+    Write-Host "=== 9. Public URL alınıyor ===" -ForegroundColor Cyan
+    $SERVICE_URL = gcloud run services describe $SERVICE_NAME `
+        --platform=managed `
+        --region=$REGION `
+        --format="value(status.url)" 2>$null
 
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "  YÖRÜNGE MUHAFIZI — DEPLOYMENT TAMAMLANDI!" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "  Dashboard URL : $SERVICE_URL" -ForegroundColor Yellow
-Write-Host "  Project       : $PROJECT_ID" -ForegroundColor Gray
-Write-Host "  Region        : $REGION" -ForegroundColor Gray
-Write-Host "  Image         : $FULL_IMAGE" -ForegroundColor Gray
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host ""
-Write-Host "Kapatmak için: .\teardown-gcloud.ps1" -ForegroundColor Gray
-Write-Host "Logları görmek: gcloud run services logs read $SERVICE_NAME --region=$REGION" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "============================================================" -ForegroundColor Green
+    Write-Host "  YÖRÜNGE MUHAFIZI — DEPLOYMENT TAMAMLANDI!" -ForegroundColor Green
+    Write-Host "============================================================" -ForegroundColor Green
+    Write-Host "  Dashboard URL : $SERVICE_URL" -ForegroundColor Yellow
+    Write-Host "  Project       : $PROJECT_ID" -ForegroundColor Gray
+    Write-Host "  Region        : $REGION" -ForegroundColor Gray
+    Write-Host "  Image         : $FULL_IMAGE" -ForegroundColor Gray
+    Write-Host "============================================================" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Kapatmak için: .\teardown-gcloud.ps1" -ForegroundColor Gray
+    Write-Host "Logları görmek: gcloud run services logs read $SERVICE_NAME --region=$REGION" -ForegroundColor Gray
+} else {
+    Write-Host ""
+    Write-Host "============================================================" -ForegroundColor Green
+    Write-Host "  BUILD + PUSH TAMAMLANDI (-SkipDeploy)" -ForegroundColor Green
+    Write-Host "============================================================" -ForegroundColor Green
+    Write-Host "  Image         : $FULL_IMAGE" -ForegroundColor Yellow
+    Write-Host "  Cloud Run güncellemek için -SkipDeploy kullanmadan çalıştırın veya:" -ForegroundColor Gray
+    Write-Host "  gcloud run deploy $SERVICE_NAME --image=$FULL_IMAGE --region=$REGION --platform=managed ..." -ForegroundColor Gray
+    Write-Host "============================================================" -ForegroundColor Green
+}

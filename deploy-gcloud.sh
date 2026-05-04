@@ -9,6 +9,8 @@
 # Çalıştırmak için:
 #   chmod +x deploy-gcloud.sh
 #   ./deploy-gcloud.sh
+# Sadece build + push (Cloud Run yok):
+#   SKIP_DEPLOY=1 ./deploy-gcloud.sh
 # ============================================================
 
 set -e  # hata olursa dur
@@ -117,40 +119,50 @@ echo -e "${CYAN}=== 8. Image Artifact Registry'ye push ediliyor ===${NC}"
 docker push "$FULL_IMAGE"
 echo -e "${GREEN}Push tamamlandı.${NC}"
 
-# ── 9. Cloud Run'a deploy et ─────────────────────────────────
-echo ""
-echo -e "${CYAN}=== 9. Google Cloud Run'a deploy ediliyor ===${NC}"
-gcloud run deploy "$SERVICE_NAME" \
-    --image="$FULL_IMAGE" \
-    --platform=managed \
-    --region="$REGION" \
-    --port=8501 \
-    --memory=2Gi \
-    --cpu=1 \
-    --timeout=3600 \
-    --min-instances=0 \
-    --max-instances=1 \
-    --allow-unauthenticated \
-    --set-env-vars="STREAMLIT_SERVER_PORT=8501,STREAMLIT_SERVER_ADDRESS=0.0.0.0,STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_BROWSER_GATHER_USAGE_STATS=false" \
-    --quiet
+if [[ "${SKIP_DEPLOY:-}" != "1" ]]; then
+  # ── 9. Cloud Run'a deploy et ─────────────────────────────────
+  echo ""
+  echo -e "${CYAN}=== 9. Google Cloud Run'a deploy ediliyor ===${NC}"
+  gcloud run deploy "$SERVICE_NAME" \
+      --image="$FULL_IMAGE" \
+      --platform=managed \
+      --region="$REGION" \
+      --port=8501 \
+      --memory=2Gi \
+      --cpu=1 \
+      --timeout=3600 \
+      --min-instances=0 \
+      --max-instances=1 \
+      --allow-unauthenticated \
+      --set-env-vars="STREAMLIT_SERVER_PORT=8501,STREAMLIT_SERVER_ADDRESS=0.0.0.0,STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_BROWSER_GATHER_USAGE_STATS=false" \
+      --quiet
 
-# ── 10. Public URL al ────────────────────────────────────────
-echo ""
-echo -e "${CYAN}=== 10. Public URL alınıyor ===${NC}"
-SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
-    --platform=managed \
-    --region="$REGION" \
-    --format="value(status.url)" 2>/dev/null)
+  # ── 10. Public URL al ────────────────────────────────────────
+  echo ""
+  echo -e "${CYAN}=== 10. Public URL alınıyor ===${NC}"
+  SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
+      --platform=managed \
+      --region="$REGION" \
+      --format="value(status.url)" 2>/dev/null)
 
-echo ""
-echo -e "${GREEN}============================================================${NC}"
-echo -e "${GREEN}  YÖRÜNGE MUHAFIZI — DEPLOYMENT TAMAMLANDI!${NC}"
-echo -e "${GREEN}============================================================${NC}"
-echo -e "${YELLOW}  Dashboard URL : $SERVICE_URL${NC}"
-echo -e "${GRAY}  Project       : $PROJECT_ID${NC}"
-echo -e "${GRAY}  Region        : $REGION${NC}"
-echo -e "${GRAY}  Image         : $FULL_IMAGE${NC}"
-echo -e "${GREEN}============================================================${NC}"
-echo ""
-echo -e "${GRAY}Kapatmak için       : ./teardown-gcloud.sh${NC}"
-echo -e "${GRAY}Logları görmek için : gcloud run services logs read $SERVICE_NAME --region=$REGION${NC}"
+  echo ""
+  echo -e "${GREEN}============================================================${NC}"
+  echo -e "${GREEN}  YÖRÜNGE MUHAFIZI — DEPLOYMENT TAMAMLANDI!${NC}"
+  echo -e "${GREEN}============================================================${NC}"
+  echo -e "${YELLOW}  Dashboard URL : $SERVICE_URL${NC}"
+  echo -e "${GRAY}  Project       : $PROJECT_ID${NC}"
+  echo -e "${GRAY}  Region        : $REGION${NC}"
+  echo -e "${GRAY}  Image         : $FULL_IMAGE${NC}"
+  echo -e "${GREEN}============================================================${NC}"
+  echo ""
+  echo -e "${GRAY}Kapatmak için       : ./teardown-gcloud.sh${NC}"
+  echo -e "${GRAY}Logları görmek için : gcloud run services logs read $SERVICE_NAME --region=$REGION${NC}"
+else
+  echo ""
+  echo -e "${GREEN}============================================================${NC}"
+  echo -e "${GREEN}  BUILD + PUSH TAMAMLANDI (SKIP_DEPLOY=1)${NC}"
+  echo -e "${GREEN}============================================================${NC}"
+  echo -e "${YELLOW}  Image : $FULL_IMAGE${NC}"
+  echo -e "${GRAY}  Cloud Run için SKIP_DEPLOY kullanmadan ./deploy-gcloud.sh çalıştırın.${NC}"
+  echo -e "${GREEN}============================================================${NC}"
+fi
