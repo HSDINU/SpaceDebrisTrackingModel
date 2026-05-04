@@ -123,6 +123,28 @@ function createRockTexture(THREE: typeof import("three")) {
   return new THREE.CanvasTexture(canvas);
 }
 
+/** Önce yerel /textures (Docker veya prebuild), olmazsa unpkg yedeği — GCloud / sıkı istemciler için */
+const EARTH_TEXTURE_CDN =
+  "https://unpkg.com/three-globe/example/img";
+
+function loadTextureFirstHit(
+  loader: THREE.TextureLoader,
+  candidates: string[],
+): Promise<THREE.Texture> {
+  return new Promise((resolve, reject) => {
+    let i = 0;
+    const tryNext = () => {
+      if (i >= candidates.length) {
+        reject(new Error(`Texture failed: ${candidates.join(" | ")}`));
+        return;
+      }
+      const url = candidates[i++];
+      loader.load(url, resolve, undefined, tryNext);
+    };
+    tryNext();
+  });
+}
+
 function cell2(
   label: string,
   value: string | number,
@@ -781,22 +803,44 @@ export function mountOrbitScene(
 
   const textureLoader = new THREE.TextureLoader();
   const earthGeometry = new THREE.SphereGeometry(100, 64, 64);
-  const earthMaterial = new THREE.MeshStandardMaterial({
-    map: textureLoader.load(
-      "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
-    ),
-    bumpMap: textureLoader.load(
-      "https://unpkg.com/three-globe/example/img/earth-topology.png",
-    ),
-    bumpScale: 2,
-    emissive: new THREE.Color(0x00f3ff),
-    emissiveIntensity: 0.15,
-    emissiveMap: textureLoader.load(
-      "https://unpkg.com/three-globe/example/img/earth-night-lights.jpg",
-    ),
-  });
-  earth = new THREE.Mesh(earthGeometry, earthMaterial);
+  earth = new THREE.Mesh(
+    earthGeometry,
+    new THREE.MeshBasicMaterial({ color: 0x1a4d6e }),
+  );
   scene.add(earth);
+
+  void Promise.all([
+    loadTextureFirstHit(textureLoader, [
+      "/textures/earth-blue-marble.jpg",
+      `${EARTH_TEXTURE_CDN}/earth-blue-marble.jpg`,
+    ]),
+    loadTextureFirstHit(textureLoader, [
+      "/textures/earth-topology.png",
+      `${EARTH_TEXTURE_CDN}/earth-topology.png`,
+    ]),
+    loadTextureFirstHit(textureLoader, [
+      "/textures/earth-night-lights.jpg",
+      `${EARTH_TEXTURE_CDN}/earth-night-lights.jpg`,
+    ]),
+  ])
+    .then(([map, bump, emi]) => {
+      const prev = earth?.material;
+      if (earth) {
+        earth.material = new THREE.MeshStandardMaterial({
+          map,
+          bumpMap: bump,
+          bumpScale: 2,
+          emissive: new THREE.Color(0x00f3ff),
+          emissiveIntensity: 0.15,
+          emissiveMap: emi,
+        });
+      }
+      if (prev && "dispose" in prev && typeof prev.dispose === "function")
+        prev.dispose();
+    })
+    .catch(() => {
+      /* Yerel + CDN başarısız: dünya yer tutucu renkle kalır */
+    });
 
   const atmoGeom = new THREE.SphereGeometry(105, 64, 64);
   const atmoMat = new THREE.MeshBasicMaterial({

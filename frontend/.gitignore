@@ -17,6 +17,11 @@
 /.next/
 /out/
 
+# prebuild ile indirilen Dünya dokuları (commit gerekmez)
+public/textures/*.jpg
+public/textures/*.png
+!public/textures/.gitkeep
+
 # production
 /build
 

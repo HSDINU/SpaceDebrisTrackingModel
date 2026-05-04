@@ -51,13 +51,15 @@ COPY --from=frontend-builder /app/frontend/.next/standalone ./
 COPY --from=frontend-builder /app/frontend/.next/static ./.next/static
 COPY --from=frontend-builder /app/frontend/public ./public
 
+# Cloud Run varsayılanı 8080; `docker run -e PORT=3000 -p 3000:3000` ile değiştirilebilir
 ENV NODE_ENV=production \
     PYTHONUNBUFFERED=1 \
-    HOSTNAME=0.0.0.0
+    HOSTNAME=0.0.0.0 \
+    PORT=8080
 
-EXPOSE 3000
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD sh -c 'curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" >/dev/null || exit 1'
+    CMD sh -c 'curl -fsS "http://127.0.0.1:${PORT}/api/health" >/dev/null || exit 1'
 
 CMD ["sh", "-c", "exec node server.js"]
