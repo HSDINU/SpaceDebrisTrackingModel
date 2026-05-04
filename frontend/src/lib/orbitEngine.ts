@@ -819,7 +819,8 @@ export function mountOrbitScene(
       `${EARTH_TEXTURE_CDN}/earth-topology.png`,
     ]),
     loadTextureFirstHit(textureLoader, [
-      "/textures/earth-night-lights.jpg",
+      "/textures/earth-night.jpg",
+      `${EARTH_TEXTURE_CDN}/earth-night.jpg`,
       `${EARTH_TEXTURE_CDN}/earth-night-lights.jpg`,
     ]),
   ])

@@ -10,10 +10,11 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const texturesDir = join(__dirname, "..", "public", "textures");
 
+/** Pakette dosya adı `earth-night.jpg` (eski `earth-night-lights.jpg` yolu 404 veriyor). */
 const FILES = [
   ["earth-blue-marble.jpg", "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"],
   ["earth-topology.png", "https://unpkg.com/three-globe/example/img/earth-topology.png"],
-  ["earth-night-lights.jpg", "https://unpkg.com/three-globe/example/img/earth-night-lights.jpg"],
+  ["earth-night.jpg", "https://unpkg.com/three-globe/example/img/earth-night.jpg"],
 ];
 
 mkdirSync(texturesDir, { recursive: true });
