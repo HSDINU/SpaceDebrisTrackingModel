@@ -19,6 +19,11 @@ venv/
 env/
 ENV/
 
+# Next.js frontend (Streamlit imajında kullanılmaz; bağlam boyutunu düşürür)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
 # IDE
 .cursor/
 .vscode/

@@ -78,7 +78,7 @@ Write-Host "=== 6. Docker image build ediliyor (10-15 dakika sürebilir) ===" -F
 $FULL_IMAGE = "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/${IMAGE_NAME}:${IMAGE_TAG}"
 Write-Host "Image: $FULL_IMAGE" -ForegroundColor Gray
 
-docker build -t $FULL_IMAGE .
+docker build --target runtime -t $FULL_IMAGE .
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Docker build başarısız! Docker Desktop açık mı?" -ForegroundColor Red
     exit 1
@@ -103,6 +103,7 @@ gcloud run deploy $SERVICE_NAME `
     --port=8501 `
     --memory=2Gi `
     --cpu=1 `
+    --timeout=3600 `
     --min-instances=0 `
     --max-instances=1 `
     --allow-unauthenticated `

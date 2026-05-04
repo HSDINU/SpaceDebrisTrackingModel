@@ -108,7 +108,7 @@ gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
 echo ""
 echo -e "${CYAN}=== 7. Docker image build ediliyor (10-15 dakika sürebilir) ===${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-docker build -t "$FULL_IMAGE" "$SCRIPT_DIR"
+docker build --target runtime -t "$FULL_IMAGE" "$SCRIPT_DIR"
 echo -e "${GREEN}Build tamamlandı.${NC}"
 
 # ── 8. Image push et ─────────────────────────────────────────
@@ -127,6 +127,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --port=8501 \
     --memory=2Gi \
     --cpu=1 \
+    --timeout=3600 \
     --min-instances=0 \
     --max-instances=1 \
     --allow-unauthenticated \

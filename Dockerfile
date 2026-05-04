@@ -1,4 +1,8 @@
-# ── Build aşaması ───────────────────────────────────────────────────────────
+# Çok aşamalı imaj: Cloud Run / docker compose → runtime hedefi
+#   docker build --target runtime -t TAG .
+# Yerel pipeline profili de runtime kullanır (kaynak kod builder'da yoktur).
+
+# ── Build aşaması (yalnızca pip bağımlılıkları) ────────────────────────────
 FROM python:3.11-slim AS builder
 
 WORKDIR /app

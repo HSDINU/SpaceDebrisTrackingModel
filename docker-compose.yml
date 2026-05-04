@@ -1,8 +1,8 @@
-version: "3.9"
-
-# ── Yerel geliştirme için ────────────────────────────────────────────────────
-# Google Cloud Run'a deploy için: .\deploy-gcloud.ps1
-# Cloud Run image formatı: europe-west3-docker.pkg.dev/PROJECT_ID/yorunge-repo/yorunge-muhafizi:latest
+# Compose spec (version anahtarı gerekmez — Compose V2)
+# ── Yerel geliştirme ─────────────────────────────────────────────────────────
+# Cloud Run deploy: .\deploy-gcloud.ps1 veya ./deploy-gcloud.sh
+# Image tam adı: ${REGION}-docker.pkg.dev/${PROJECT_ID}/yorunge-repo/yorunge-muhafizi:latest
+#   REGION / PROJECT_ID → deploy-gcloud.* içindeki değerlerle aynı olmalı
 
 services:
   yorunge-muhafizi:
@@ -10,8 +10,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    # Yerel build için: yorunge-muhafizi:latest
-    # GCR push için: europe-west3-docker.pkg.dev/PROJECT_ID/yorunge-repo/yorunge-muhafizi:latest
+    # Yerel: yorunge-muhafizi:latest | Artifact Registry: deploy betiğindeki FULL_IMAGE
     image: yorunge-muhafizi:latest
     container_name: yorunge_muhafizi
     ports:
@@ -35,12 +34,12 @@ services:
       retries: 3
       start_period: 15s
 
-  # İsteğe bağlı: pipeline'ı container içinde çalıştırmak için
+  # İsteğe bağlı: tam pipeline (main.py --all) — runtime imajı gerekir (kaynak + ml_pipeline)
   pipeline:
     build:
       context: .
       dockerfile: Dockerfile
-      target: builder
+      target: runtime
     image: yorunge-pipeline:latest
     container_name: yorunge_pipeline
     volumes:
